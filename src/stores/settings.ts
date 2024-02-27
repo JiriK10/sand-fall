@@ -10,6 +10,8 @@ interface SettingsState {
   sandColorChange: number
   sandDropTop: boolean
   sandDropTopSpeed: number
+  sandDropClick: number
+  sandDropClickBox: number
 }
 
 export const useSettingsStore = defineStore("settings", {
@@ -21,5 +23,7 @@ export const useSettingsStore = defineStore("settings", {
     sandColorChange: 0.11,
     sandDropTop: true,
     sandDropTopSpeed: 100,
+    sandDropClick: 1,
+    sandDropClickBox: 1,
   }),
 })

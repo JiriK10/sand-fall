@@ -1,20 +1,26 @@
 import { defineStore } from "pinia"
-import { Moment } from "moment"
+import moment, { Moment } from "moment"
 
 import { useSettingsStore } from "../stores/settings"
 
 import { DesertRow } from "../models/desert-row"
 import { DesertItem } from "../models/desert-item"
+import { SandColor } from "../models/sand-color"
 
 export interface DesertState {
   area: Array<DesertRow>
+  sandColorCoef: number
 }
 
 export const useDesertStore = defineStore("desert", {
   state: (): DesertState => ({
     area: [],
+    sandColorCoef: 0,
   }),
   getters: {
+    areaWidth(state) {
+      return state.area.length > 0 ? state.area[0].length : 0
+    },
     areaHeight(state) {
       return state.area.length
     },
@@ -47,15 +53,45 @@ export const useDesertStore = defineStore("desert", {
         }
       }
     },
-    setItem(item: DesertItem, x: number, y: number) {
-      this.area[y - 1][x - 1] = item
+    /*
+     ********** SAND **********
+     */
+    increaseSandColor() {
+      const settingsStore = useSettingsStore()
+      if (settingsStore.sandColorChange > 0) {
+        const newColor = Math.min(
+          1,
+          this.sandColorCoef + settingsStore.sandColorChange / 100,
+        )
+        this.sandColorCoef =
+          this.sandColorCoef == 1 && newColor == 1 ? 0 : newColor
+      }
     },
-    addRandomlyToRow(item: DesertItem, y: number) {
-      const row = this.area[y - 1]
+    addSand(x: number, y: number) {
+      const settingsStore = useSettingsStore()
+      if (settingsStore.sandDropClick > 0) {
+        for (let i = 0; i < settingsStore.sandDropClick; i++) {
+          const randomX = getRandomPointCoordinate(
+            x,
+            settingsStore.sandDropClickBox,
+          )
+          const randomY = getRandomPointCoordinate(
+            y,
+            settingsStore.sandDropClickBox,
+          )
+          if (this.area[randomY][randomX] == null) {
+            this.area[randomY][randomX] = getNewSand(this.sandColorCoef)
+            this.increaseSandColor()
+          }
+        }
+      }
+    },
+    addSandRandomlyToRow(y: number) {
+      const row = this.area[y]
       let colIndex = null
       // Find random spot
       for (let i = 0; i < row.length; i++) {
-        const coordinate = getRandomCoordinate(row.length)
+        const coordinate = getRandomRowCoordinate(row.length)
         if (row[coordinate] == null) {
           colIndex = coordinate
           break
@@ -67,9 +103,13 @@ export const useDesertStore = defineStore("desert", {
       }
 
       if (colIndex != null && colIndex >= 0) {
-        row[colIndex] = item
+        row[colIndex] = getNewSand(this.sandColorCoef)
+        this.increaseSandColor()
       }
     },
+    /*
+     ********** AREA DROP **********
+     */
     drop(now: Moment) {
       const settingsStore = useSettingsStore()
       for (let rowIndex = this.area.length - 2; rowIndex >= 0; rowIndex--) {
@@ -130,6 +170,32 @@ export const useDesertStore = defineStore("desert", {
   },
 })
 
-function getRandomCoordinate(limit: number) {
+function getRandomRowCoordinate(limit: number) {
   return Math.round(Math.random() * (limit - 1))
+}
+
+function getRandomPointCoordinate(center: number, width: number) {
+  return (
+    center - Math.floor(width / 2) + Math.round(Math.random() * (width - 1))
+  )
+}
+
+function getSandColor(sandColor: SandColor, coef: number) {
+  switch (sandColor) {
+    case SandColor.Sand:
+      return `hsl(34, ${50 + Math.round(coef * 35)}%, ${70 + Math.round(coef * 15)}%)`
+    case SandColor.Grey:
+      return `hsl(0, 0%, ${100 - Math.round(coef * 80)}%)`
+    default:
+      return `hsl(${Math.round(coef * 360)}, 100%, 50%)`
+  }
+}
+
+function getNewSand(sandColorCoef: number): DesertItem {
+  const settingsStore = useSettingsStore()
+  return {
+    lastDrop: moment(),
+    speed: settingsStore.sandSpeed,
+    color: getSandColor(settingsStore.sandColor, sandColorCoef),
+  }
 }

@@ -21,6 +21,13 @@ const sliderAttrs = {
   color: "primary",
   class: "py-3",
 }
+
+function trimSandDropClick() {
+  const limit = Math.pow(settingsStore.sandDropClickBox, 2)
+  if (settingsStore.sandDropClick > limit) {
+    settingsStore.sandDropClick = limit
+  }
+}
 </script>
 
 <template>
@@ -94,6 +101,28 @@ const sliderAttrs = {
         max="10000"
         step="25"
         :disabled="!settingsStore.sandDropTop"
+      />
+      <div class="text-h5 my-3">Drop sand on click</div>
+      <div class="text-caption">Amount - {{ settingsStore.sandDropClick }}</div>
+      <v-slider
+        v-bind="sliderAttrs"
+        v-model="settingsStore.sandDropClick"
+        min="0"
+        :max="Math.pow(settingsStore.sandDropClickBox, 2)"
+        step="1"
+      />
+      <div class="text-caption">
+        Box - {{ settingsStore.sandDropClickBox }}x{{
+          settingsStore.sandDropClickBox
+        }}
+      </div>
+      <v-slider
+        v-bind="sliderAttrs"
+        v-model="settingsStore.sandDropClickBox"
+        @update:modelValue="trimSandDropClick()"
+        min="1"
+        max="5"
+        step="2"
       />
       <v-divider />
       <div class="mt-5 flex justify-between">
