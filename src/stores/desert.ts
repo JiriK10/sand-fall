@@ -2,6 +2,7 @@ import { defineStore } from "pinia"
 import moment, { Moment } from "moment"
 
 import { useSettingsStore } from "../stores/settings"
+import { useDesertCursorStore } from "../stores/desert-cursor"
 
 import { DesertRow } from "../models/desert-row"
 import { DesertItem } from "../models/desert-item"
@@ -67,19 +68,23 @@ export const useDesertStore = defineStore("desert", {
           this.sandColorCoef == 1 && newColor == 1 ? 0 : newColor
       }
     },
-    addSand(x: number, y: number) {
-      const settingsStore = useSettingsStore()
-      if (settingsStore.sandDropClick > 0) {
-        for (let i = 0; i < settingsStore.sandDropClick; i++) {
+    addSandToCursor(amount: number, box: number) {
+      const desertCursorStore = useDesertCursorStore()
+      if (!desertCursorStore.isOutside) {
+        for (let i = 0; i < amount; i++) {
           const randomX = getRandomPointCoordinate(
-            x,
-            settingsStore.sandDropClickBox,
+            desertCursorStore.cursorX,
+            box,
           )
           const randomY = getRandomPointCoordinate(
-            y,
-            settingsStore.sandDropClickBox,
+            desertCursorStore.cursorY,
+            box,
           )
-          if (this.area[randomY][randomX] == null) {
+          if (
+            isCoordinateIn(randomX, this.areaWidth) &&
+            isCoordinateIn(randomY, this.areaHeight) &&
+            this.area[randomY][randomX] == null
+          ) {
             this.area[randomY][randomX] = getNewSand(this.sandColorCoef)
             this.increaseSandColor()
           }
@@ -135,8 +140,7 @@ export const useDesertStore = defineStore("desert", {
               for (const side of [randomSide, -randomSide]) {
                 const sideIndex = colIndex + side
                 if (
-                  sideIndex >= 0 &&
-                  sideIndex < row.length &&
+                  isCoordinateIn(sideIndex, row.length) &&
                   row[sideIndex] == null &&
                   nextRow[sideIndex] == null
                 ) {
@@ -178,6 +182,10 @@ function getRandomPointCoordinate(center: number, width: number) {
   return (
     center - Math.floor(width / 2) + Math.round(Math.random() * (width - 1))
   )
+}
+
+function isCoordinateIn(coordinate: number, limit: number) {
+  return coordinate >= 0 && coordinate < limit
 }
 
 function getSandColor(sandColor: SandColor, coef: number) {

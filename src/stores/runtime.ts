@@ -7,12 +7,14 @@ import { useDesertStore } from "../stores/desert"
 export interface RuntimeState {
   timer: number | null
   lastSandDropTop: Moment | null
+  lastSandDropCursor: Moment | null
 }
 
 export const useRuntimeStore = defineStore("runtime", {
   state: (): RuntimeState => ({
     timer: null,
     lastSandDropTop: null,
+    lastSandDropCursor: null,
   }),
   getters: {
     isRunning(state) {
@@ -35,6 +37,21 @@ export const useRuntimeStore = defineStore("runtime", {
         ) {
           this.lastSandDropTop = now
           desertStore.addSandRandomlyToRow(0)
+        }
+        // Drop new sand under cursor
+        if (
+          settingsStore.sandDropCursor > 0 &&
+          hasPassed(
+            now,
+            this.lastSandDropCursor,
+            settingsStore.sandDropCursorSpeed,
+          )
+        ) {
+          this.lastSandDropCursor = now
+          desertStore.addSandToCursor(
+            settingsStore.sandDropCursor,
+            settingsStore.sandDropCursorBox,
+          )
         }
         // Stop when desert is full
         if (desertStore.isFull) {

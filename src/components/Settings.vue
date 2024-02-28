@@ -28,6 +28,12 @@ function trimSandDropClick() {
     settingsStore.sandDropClick = limit
   }
 }
+function trimSandDropCursor() {
+  const limit = Math.pow(settingsStore.sandDropCursorBox, 2)
+  if (settingsStore.sandDropCursor > limit) {
+    settingsStore.sandDropCursor = limit
+  }
+}
 </script>
 
 <template>
@@ -123,6 +129,40 @@ function trimSandDropClick() {
         min="1"
         max="5"
         step="2"
+      />
+      <div class="text-h5 my-3">Drop sand under cursor</div>
+      <div class="text-caption">
+        Amount - {{ settingsStore.sandDropCursor }}
+      </div>
+      <v-slider
+        v-bind="sliderAttrs"
+        v-model="settingsStore.sandDropCursor"
+        min="0"
+        :max="Math.pow(settingsStore.sandDropCursorBox, 2)"
+        step="1"
+      />
+      <div class="text-caption">
+        Box - {{ settingsStore.sandDropCursorBox }}x{{
+          settingsStore.sandDropCursorBox
+        }}
+      </div>
+      <v-slider
+        v-bind="sliderAttrs"
+        v-model="settingsStore.sandDropCursorBox"
+        @update:modelValue="trimSandDropCursor()"
+        min="1"
+        max="5"
+        step="2"
+      />
+      <div class="text-caption">
+        Speed - {{ settingsStore.sandDropCursorSpeed }}ms
+      </div>
+      <v-slider
+        v-bind="sliderAttrs"
+        v-model="settingsStore.sandDropCursorSpeed"
+        min="0"
+        max="10000"
+        step="25"
       />
       <v-divider />
       <div class="mt-5 flex justify-between">

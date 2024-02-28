@@ -1,16 +1,20 @@
 <script setup lang="ts">
 import { ref } from "vue"
-import { useElementSize } from "@vueuse/core"
-import { UseMouseInElement } from "@vueuse/components"
+import { watchOnce } from "@vueuse/core"
 
 import { useSettingsStore } from "../stores/settings"
 import { useDesertStore } from "../stores/desert"
+import { useDesertCursorStore } from "../stores/desert-cursor"
 
-const area = ref(null)
-const { width: areaWidth, height: areaHeight } = useElementSize(area)
+const area = ref<HTMLElement>()
 
 const settingsStore = useSettingsStore()
 const desertStore = useDesertStore()
+const desertCursorStore = useDesertCursorStore()
+
+watchOnce(area, () => {
+  desertCursorStore.init(area.value!)
+})
 
 const sizeMap: { [key: number]: string } = {
   1: "h-1 w-1",
@@ -19,34 +23,29 @@ const sizeMap: { [key: number]: string } = {
   4: "h-4 w-4",
 }
 
-function areaClick(areaX: number, areaY: number, isOutside: boolean) {
-  if (!isOutside) {
-    const x = Math.floor((areaX / areaWidth.value) * desertStore.areaWidth)
-    const y = Math.floor((areaY / areaHeight.value) * desertStore.areaHeight)
-    desertStore.addSand(x, y)
+function dropSand() {
+  if (settingsStore.sandDropClick > 0) {
+    desertStore.addSandToCursor(
+      settingsStore.sandDropClick,
+      settingsStore.sandDropClickBox,
+    )
   }
 }
 </script>
 
 <template>
-  <UseMouseInElement v-slot="{ elementX, elementY, isOutside }">
+  <div ref="area" class="flex flex-col" @click="dropSand">
     <div
-      ref="area"
-      class="flex flex-col"
-      @click="areaClick(elementX, elementY, isOutside)"
+      v-for="(row, rowIndex) in desertStore.area"
+      :key="`r-${rowIndex}`"
+      class="flex flex-row"
     >
-      <div
-        v-for="(row, rowIndex) in desertStore.area"
-        :key="`r-${rowIndex}`"
-        class="flex flex-row"
-      >
-        <span
-          v-for="(item, itemIndex) in row"
-          :key="`i-${rowIndex}-${itemIndex}`"
-          :style="{ backgroundColor: item?.color || '#9E9E9E' }"
-          :class="sizeMap[settingsStore.sandSize]"
-        ></span>
-      </div>
+      <span
+        v-for="(item, itemIndex) in row"
+        :key="`i-${rowIndex}-${itemIndex}`"
+        :style="{ backgroundColor: item?.color || '#9E9E9E' }"
+        :class="sizeMap[settingsStore.sandSize]"
+      ></span>
     </div>
-  </UseMouseInElement>
+  </div>
 </template>
