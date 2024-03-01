@@ -10,12 +10,14 @@ import { SandColor } from "../models/sand-color"
 
 export interface DesertState {
   area: Array<DesertRow>
+  moving: Array<{ x: number; y: number }>
   sandColorCoef: number
 }
 
 export const useDesertStore = defineStore("desert", {
   state: (): DesertState => ({
     area: [],
+    moving: [],
     sandColorCoef: 0,
   }),
   getters: {
@@ -27,6 +29,7 @@ export const useDesertStore = defineStore("desert", {
     },
     isFull(state) {
       return (
+        state.moving.length == 0 &&
         state.area.length > 0 &&
         [...Array(5).keys()].every((index) =>
           state.area[index].every((item) => item != null),
@@ -45,6 +48,7 @@ export const useDesertStore = defineStore("desert", {
         }
       }
       this.area = init
+      this.moving = []
     },
     clear() {
       for (let i = 0; i < this.area.length; i++) {
@@ -52,6 +56,19 @@ export const useDesertStore = defineStore("desert", {
         for (let j = 0; j < row.length; j++) {
           row[j] = null
         }
+      }
+      this.moving = []
+    },
+    /*
+     ********** MOVING ITEMS **********
+     */
+    addMoving(x: number, y: number) {
+      this.moving.push({ x, y })
+    },
+    removeMoving(x: number, y: number) {
+      const index = this.moving.findIndex((m) => m.x == x && m.y == y)
+      if (index >= 0) {
+        this.moving.splice(index, 1)
       }
     },
     /*
@@ -86,6 +103,7 @@ export const useDesertStore = defineStore("desert", {
             this.area[randomY][randomX] == null
           ) {
             this.area[randomY][randomX] = getNewSand(this.sandColorCoef)
+            this.addMoving(randomX, randomY)
             this.increaseSandColor()
           }
         }
@@ -109,6 +127,7 @@ export const useDesertStore = defineStore("desert", {
 
       if (colIndex != null && colIndex >= 0) {
         row[colIndex] = getNewSand(this.sandColorCoef)
+        this.addMoving(colIndex, y)
         this.increaseSandColor()
       }
     },
@@ -116,59 +135,65 @@ export const useDesertStore = defineStore("desert", {
      ********** AREA DROP **********
      */
     drop(now: Moment) {
-      const settingsStore = useSettingsStore()
-      for (let rowIndex = this.area.length - 2; rowIndex >= 0; rowIndex--) {
-        const row = this.area[rowIndex]
-        for (let colIndex = 0; colIndex < row.length; colIndex++) {
-          const item = row[colIndex]
-          if (
-            item != null &&
-            item.speed > 0 &&
-            now.diff(item.lastDrop) >= item.speed
-          ) {
-            const nextRow = this.area[rowIndex + 1]
+      try {
+        const settingsStore = useSettingsStore()
+        const sandAcceleration = settingsStore.sandAcceleration
+        this.moving.forEach((movingItem) => {
+          const rowIndex = movingItem.y
+          const colIndex = movingItem.x
+          const row = this.area[rowIndex]
+          const item = row[colIndex]!
+          if (now.diff(item.lastDrop) >= item.speed) {
+            const isLastRow = rowIndex >= this.areaHeight - 1
             let moved = false
-            // Move down
-            if (nextRow[colIndex] == null) {
-              row[colIndex] = null
-              nextRow[colIndex] = item
-              moved = true
-            }
-            // Move down and L/R
-            else {
-              const randomSide = Math.sign(Math.random() - 0.5) || 1
-              for (const side of [randomSide, -randomSide]) {
-                const sideIndex = colIndex + side
-                if (
-                  isCoordinateIn(sideIndex, row.length) &&
-                  row[sideIndex] == null &&
-                  nextRow[sideIndex] == null
-                ) {
-                  row[colIndex] = null
-                  nextRow[sideIndex] = item
-                  moved = true
-                  break
+            if (!isLastRow) {
+              const nextRow = this.area[rowIndex + 1]
+              // Move down
+              if (nextRow[colIndex] == null) {
+                row[colIndex] = null
+                nextRow[colIndex] = item
+                movingItem.y++
+                moved = true
+              }
+              // Move down and L/R
+              else {
+                const randomSide = Math.sign(Math.random() - 0.5) || 1
+                for (const side of [randomSide, -randomSide]) {
+                  const sideIndex = colIndex + side
+                  if (
+                    isCoordinateIn(sideIndex, row.length) &&
+                    row[sideIndex] == null &&
+                    nextRow[sideIndex] == null
+                  ) {
+                    row[colIndex] = null
+                    nextRow[sideIndex] = item
+                    movingItem.x = sideIndex
+                    movingItem.y++
+                    moved = true
+                    break
+                  }
                 }
               }
             }
             // Update item after move
             if (moved) {
               item.lastDrop = now
-              item.speed = Math.max(
-                10,
-                item.speed - settingsStore.sandAcceleration,
-              )
+              item.speed = Math.max(10, item.speed - sandAcceleration)
             }
             // No move -> stop item
             else if (
+              isLastRow ||
               [...Array(this.areaHeight).keys()].every(
                 (ri) => ri <= rowIndex || this.area[ri][colIndex] != null,
               )
             ) {
               item.speed = 0
+              this.removeMoving(colIndex, rowIndex)
             }
           }
-        }
+        })
+      } catch (err) {
+        console.log(err)
       }
     },
   },

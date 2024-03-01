@@ -4,8 +4,7 @@ import Desert from "./components/Desert.vue"
 
 import { useDesertStore } from "./stores/desert"
 const store = useDesertStore()
-//store.init(300, 200)
-store.init(60, 60)
+store.init(100, 100)
 </script>
 
 <template>
