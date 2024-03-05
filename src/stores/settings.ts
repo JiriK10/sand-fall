@@ -3,6 +3,8 @@ import { defineStore } from "pinia"
 import { SandColor } from "../models/sand-color"
 
 interface SettingsState {
+  desertWidth: number
+  desertHeight: number
   sandSpeed: number
   sandAcceleration: number
   sandSize: number
@@ -19,6 +21,8 @@ interface SettingsState {
 
 export const useSettingsStore = defineStore("settings", {
   state: (): SettingsState => ({
+    desertWidth: 400,
+    desertHeight: 250,
     sandSpeed: 100,
     sandAcceleration: 100,
     sandSize: 4,

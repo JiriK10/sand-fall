@@ -26,6 +26,8 @@ export const useRuntimeStore = defineStore("runtime", {
       const settingsStore = useSettingsStore()
       const desertStore = useDesertStore()
 
+      desertStore.init(settingsStore.desertWidth, settingsStore.desertHeight)
+
       this.timer = setInterval(() => {
         const now = moment()
         // Drop whole desert area

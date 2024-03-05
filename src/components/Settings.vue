@@ -1,16 +1,14 @@
 <script setup lang="ts">
-//import { ref } from "vue"
 import { SandColor } from "../models/sand-color"
 import { useSettingsStore } from "../stores/settings"
 import { useDesertStore } from "../stores/desert"
 import { useRuntimeStore } from "../stores/runtime"
 
-//const count = ref(0)
-
 const settingsStore = useSettingsStore()
 const desertStore = useDesertStore()
 const runtimeStore = useRuntimeStore()
 
+const headerClass = "text-h5 mt-3 mb-1"
 const switchAttrs = {
   "hide-details": true,
   color: "primary",
@@ -19,7 +17,7 @@ const sliderAttrs = {
   "thumb-label": true,
   "hide-details": true,
   color: "primary",
-  class: "py-3",
+  class: "pb-2",
 }
 
 function trimSandDropClick() {
@@ -39,7 +37,28 @@ function trimSandDropCursor() {
 <template>
   <v-navigation-drawer permanent width="400" location="right">
     <div class="p-4">
-      <div class="text-h5 mb-3">Sand</div>
+      <div :class="headerClass">Desert</div>
+      <div class="text-caption">Width - {{ settingsStore.desertWidth }}px</div>
+      <v-slider
+        v-bind="sliderAttrs"
+        v-model="settingsStore.desertWidth"
+        min="50"
+        max="4000"
+        step="50"
+        :disabled="runtimeStore.isRunning"
+      />
+      <div class="text-caption">
+        Height - {{ settingsStore.desertHeight }}px
+      </div>
+      <v-slider
+        v-bind="sliderAttrs"
+        v-model="settingsStore.desertHeight"
+        min="50"
+        max="2000"
+        step="50"
+        :disabled="runtimeStore.isRunning"
+      />
+      <div :class="headerClass">Sand</div>
       <div class="text-caption">Speed - {{ settingsStore.sandSpeed }}ms</div>
       <v-slider
         v-bind="sliderAttrs"
@@ -58,13 +77,14 @@ function trimSandDropCursor() {
         max="1000"
         step="25"
       />
-      <div class="text-caption">Size - {{ settingsStore.sandSize }}</div>
+      <div class="text-caption">Size - {{ settingsStore.sandSize }}px</div>
       <v-slider
         v-bind="sliderAttrs"
         v-model="settingsStore.sandSize"
-        min="2"
+        min="1"
         max="12"
-        step="2"
+        step="1"
+        :disabled="runtimeStore.isRunning"
       />
       <div class="text-caption">Coloration</div>
       <v-btn-toggle
@@ -73,7 +93,7 @@ function trimSandDropCursor() {
         color="primary"
         variant="flat"
         density="comfortable"
-        class="my-2"
+        class="mb-2"
       >
         <v-btn :value="SandColor.Sand" :text="SandColor.Sand.toString()" />
         <v-btn :value="SandColor.Grey" :text="SandColor.Grey.toString()" />
@@ -89,7 +109,7 @@ function trimSandDropCursor() {
         max="2"
         step="0.01"
       />
-      <div class="text-h5 my-3 flex flex-row">
+      <div class="flex flex-row" :class="headerClass">
         <span class="mr-8">Drop sand from top</span>
         <v-switch
           v-bind="switchAttrs"
@@ -108,7 +128,7 @@ function trimSandDropCursor() {
         step="25"
         :disabled="!settingsStore.sandDropTop"
       />
-      <div class="text-h5 my-3">Drop sand on click</div>
+      <div :class="headerClass">Drop sand on click</div>
       <div class="text-caption">Amount - {{ settingsStore.sandDropClick }}</div>
       <v-slider
         v-bind="sliderAttrs"
@@ -130,7 +150,7 @@ function trimSandDropCursor() {
         max="5"
         step="2"
       />
-      <div class="text-h5 my-3">Drop sand under cursor</div>
+      <div :class="headerClass">Drop sand under cursor</div>
       <div class="text-caption">
         Amount - {{ settingsStore.sandDropCursor }}
       </div>

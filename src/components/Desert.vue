@@ -5,15 +5,16 @@ import { watchOnce } from "@vueuse/core"
 import { useSettingsStore } from "../stores/settings"
 import { useDesertStore } from "../stores/desert"
 import { useDesertCursorStore } from "../stores/desert-cursor"
+import { useRuntimeStore } from "../stores/runtime"
 
 const area = ref<HTMLElement>()
 
 const settingsStore = useSettingsStore()
 const desertStore = useDesertStore()
 const desertCursorStore = useDesertCursorStore()
+const runtimeStore = useRuntimeStore()
 
 watchOnce(area, () => {
-  desertStore.init(300, 300)
   desertCursorStore.init(area.value!)
 })
 
@@ -37,5 +38,6 @@ function dropSand() {
 </script>
 
 <template>
-  <div ref="area" @click="dropSand"></div>
+  <div v-show="runtimeStore.isRunning" ref="area" @click="dropSand"></div>
+  <div v-show="!runtimeStore.isRunning" class="text-9xl">🏜️</div>
 </template>
