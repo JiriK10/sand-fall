@@ -1,5 +1,6 @@
 import { defineStore } from "pinia"
 import moment, { Moment } from "moment"
+import * as PIXI from "pixi.js"
 
 import { useSettingsStore } from "../stores/settings"
 import { useDesertCursorStore } from "../stores/desert-cursor"
@@ -9,6 +10,7 @@ import { DesertItem } from "../models/desert-item"
 import { SandColor } from "../models/sand-color"
 
 export interface DesertState {
+  canvas: PIXI.Application | null
   area: Array<DesertRow>
   moving: Array<{ x: number; y: number }>
   sandColorCoef: number
@@ -16,6 +18,7 @@ export interface DesertState {
 
 export const useDesertStore = defineStore("desert", {
   state: (): DesertState => ({
+    canvas: null,
     area: [],
     moving: [],
     sandColorCoef: 0,
@@ -49,6 +52,7 @@ export const useDesertStore = defineStore("desert", {
       }
       this.area = init
       this.moving = []
+      this.canvas = getNewCanvas(width, height)
     },
     clear() {
       for (let i = 0; i < this.area.length; i++) {
@@ -58,6 +62,9 @@ export const useDesertStore = defineStore("desert", {
         }
       }
       this.moving = []
+
+      this.canvas!.destroy()
+      this.canvas = getNewCanvas(this.areaWidth, this.areaHeight)
     },
     /*
      ********** MOVING ITEMS **********
@@ -102,7 +109,9 @@ export const useDesertStore = defineStore("desert", {
             isCoordinateIn(randomY, this.areaHeight) &&
             this.area[randomY][randomX] == null
           ) {
-            this.area[randomY][randomX] = getNewSand(this.sandColorCoef)
+            const newSand = getNewSand(randomX, randomY, this.sandColorCoef)
+            this.area[randomY][randomX] = newSand
+            this.canvas!.stage.addChild(newSand.element)
             this.addMoving(randomX, randomY)
             this.increaseSandColor()
           }
@@ -126,7 +135,9 @@ export const useDesertStore = defineStore("desert", {
       }
 
       if (colIndex != null && colIndex >= 0) {
-        row[colIndex] = getNewSand(this.sandColorCoef)
+        const newSand = getNewSand(colIndex, y, this.sandColorCoef)
+        row[colIndex] = newSand
+        this.canvas!.stage.addChild(newSand.element)
         this.addMoving(colIndex, y)
         this.increaseSandColor()
       }
@@ -135,66 +146,66 @@ export const useDesertStore = defineStore("desert", {
      ********** AREA DROP **********
      */
     drop(now: Moment) {
-      try {
-        const settingsStore = useSettingsStore()
-        const sandAcceleration = settingsStore.sandAcceleration
-        this.moving.forEach((movingItem) => {
-          const rowIndex = movingItem.y
-          const colIndex = movingItem.x
-          const row = this.area[rowIndex]
-          const item = row[colIndex]!
-          if (now.diff(item.lastDrop) >= item.speed) {
-            const isLastRow = rowIndex >= this.areaHeight - 1
-            let moved = false
-            if (!isLastRow) {
-              const nextRow = this.area[rowIndex + 1]
-              // Move down
-              if (nextRow[colIndex] == null) {
-                row[colIndex] = null
-                nextRow[colIndex] = item
-                movingItem.y++
-                moved = true
-              }
-              // Move down and L/R
-              else {
-                const randomSide = Math.sign(Math.random() - 0.5) || 1
-                for (const side of [randomSide, -randomSide]) {
-                  const sideIndex = colIndex + side
-                  if (
-                    isCoordinateIn(sideIndex, row.length) &&
-                    row[sideIndex] == null &&
-                    nextRow[sideIndex] == null
-                  ) {
-                    row[colIndex] = null
-                    nextRow[sideIndex] = item
-                    movingItem.x = sideIndex
-                    movingItem.y++
-                    moved = true
-                    break
-                  }
+      const settingsStore = useSettingsStore()
+      const sandAcceleration = settingsStore.sandAcceleration
+      this.moving.forEach((movingItem) => {
+        const rowIndex = movingItem.y
+        const colIndex = movingItem.x
+        const row = this.area[rowIndex]
+        const item = row[colIndex]!
+        if (now.diff(item.lastDrop) >= item.speed) {
+          const isLastRow = rowIndex >= this.areaHeight - 1
+          let moved = false
+          if (!isLastRow) {
+            const nextRow = this.area[rowIndex + 1]
+            // Move down
+            if (nextRow[colIndex] == null) {
+              row[colIndex] = null
+              nextRow[colIndex] = item
+              movingItem.y++
+              moved = true
+            }
+            // Move down and L/R
+            else {
+              const randomSide = Math.sign(Math.random() - 0.5) || 1
+              for (const side of [randomSide, -randomSide]) {
+                const sideIndex = colIndex + side
+                if (
+                  isCoordinateIn(sideIndex, row.length) &&
+                  row[sideIndex] == null &&
+                  nextRow[sideIndex] == null
+                ) {
+                  row[colIndex] = null
+                  nextRow[sideIndex] = item
+                  movingItem.x = sideIndex
+                  movingItem.y++
+                  moved = true
+                  break
                 }
               }
             }
-            // Update item after move
-            if (moved) {
-              item.lastDrop = now
-              item.speed = Math.max(10, item.speed - sandAcceleration)
-            }
-            // No move -> stop item
-            else if (
-              isLastRow ||
-              [...Array(this.areaHeight).keys()].every(
-                (ri) => ri <= rowIndex || this.area[ri][colIndex] != null,
-              )
-            ) {
-              item.speed = 0
-              this.removeMoving(colIndex, rowIndex)
-            }
           }
-        })
-      } catch (err) {
-        console.log(err)
-      }
+          // Update item after move
+          if (moved) {
+            item.lastDrop = now
+            item.speed = Math.max(10, item.speed - sandAcceleration)
+            item.element.position.set(
+              movingItem.x * settingsStore.sandSize,
+              movingItem.y * settingsStore.sandSize,
+            )
+          }
+          // No move -> stop item
+          else if (
+            isLastRow ||
+            [...Array(this.areaHeight).keys()].every(
+              (ri) => ri <= rowIndex || this.area[ri][colIndex] != null,
+            )
+          ) {
+            item.speed = 0
+            this.removeMoving(colIndex, rowIndex)
+          }
+        }
+      })
     },
   },
 })
@@ -213,6 +224,17 @@ function isCoordinateIn(coordinate: number, limit: number) {
   return coordinate >= 0 && coordinate < limit
 }
 
+function getNewCanvas(width: number, height: number) {
+  const settingsStore = useSettingsStore()
+  return new PIXI.Application({
+    backgroundColor: "#9E9E9E",
+    width: width * settingsStore.sandSize,
+    height: height * settingsStore.sandSize,
+    premultipliedAlpha: false,
+    antialias: false,
+  })
+}
+
 function getSandColor(sandColor: SandColor, coef: number) {
   switch (sandColor) {
     case SandColor.Sand:
@@ -224,11 +246,20 @@ function getSandColor(sandColor: SandColor, coef: number) {
   }
 }
 
-function getNewSand(sandColorCoef: number): DesertItem {
+function getNewSand(x: number, y: number, sandColorCoef: number): DesertItem {
   const settingsStore = useSettingsStore()
+
+  const color = getSandColor(settingsStore.sandColor, sandColorCoef)
+  const element = new PIXI.Graphics()
+  element.beginFill(color)
+  element.drawRect(0, 0, settingsStore.sandSize, settingsStore.sandSize)
+  element.endFill()
+  element.position.set(x * settingsStore.sandSize, y * settingsStore.sandSize)
+
   return {
     lastDrop: moment(),
     speed: settingsStore.sandSpeed,
-    color: getSandColor(settingsStore.sandColor, sandColorCoef),
+    color,
+    element,
   }
 }

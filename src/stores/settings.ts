@@ -20,8 +20,8 @@ interface SettingsState {
 export const useSettingsStore = defineStore("settings", {
   state: (): SettingsState => ({
     sandSpeed: 100,
-    sandAcceleration: 10,
-    sandSize: 2,
+    sandAcceleration: 100,
+    sandSize: 4,
     sandColor: SandColor.Sand,
     sandColorChange: 0.11,
     sandDropTop: true,

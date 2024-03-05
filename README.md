@@ -1,6 +1,6 @@
 # Falling sand 🔮
 
-This is the place, where you can drop some sand and watch it fall.
+This is the place where you can drop some sand and watch it fall.
 
 ## Stack
 
@@ -9,6 +9,7 @@ This is the place, where you can drop some sand and watch it fall.
 - Pinia
 - Vuetify
 - Tailwind CSS
+- PixiJS
 
 ## Run dev server
 

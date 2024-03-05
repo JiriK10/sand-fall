@@ -44,9 +44,9 @@ function trimSandDropCursor() {
       <v-slider
         v-bind="sliderAttrs"
         v-model="settingsStore.sandSpeed"
-        min="10"
+        min="25"
         max="5000"
-        step="10"
+        step="25"
       />
       <div class="text-caption">
         Acceleration - {{ settingsStore.sandAcceleration }}ms
@@ -56,15 +56,15 @@ function trimSandDropCursor() {
         v-model="settingsStore.sandAcceleration"
         min="0"
         max="1000"
-        step="10"
+        step="25"
       />
       <div class="text-caption">Size - {{ settingsStore.sandSize }}</div>
       <v-slider
         v-bind="sliderAttrs"
         v-model="settingsStore.sandSize"
-        min="1"
-        max="4"
-        step="1"
+        min="2"
+        max="12"
+        step="2"
       />
       <div class="text-caption">Coloration</div>
       <v-btn-toggle

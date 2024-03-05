@@ -57,7 +57,7 @@ export const useRuntimeStore = defineStore("runtime", {
         if (desertStore.isFull) {
           this.stop()
         }
-      }, 10)
+      }, 25)
     },
     stop() {
       if (this.timer) {
