@@ -9,6 +9,8 @@ import { DesertRow } from "../models/desert-row"
 import { DesertItem } from "../models/desert-item"
 import { SandColor } from "../models/sand-color"
 
+const SAND_MAX_STATIC = 500 // ms
+
 export interface DesertState {
   canvas: PIXI.Application | null
   area: Array<DesertRow>
@@ -34,8 +36,8 @@ export const useDesertStore = defineStore("desert", {
       return (
         state.moving.length == 0 &&
         state.area.length > 0 &&
-        [...Array(5).keys()].every((index) =>
-          state.area[index].every((item) => item != null),
+        [...Array(5).keys()].every((idx) =>
+          state.area[idx].every((item) => item != null),
         )
       )
     },
@@ -73,9 +75,9 @@ export const useDesertStore = defineStore("desert", {
       this.moving.push({ x, y })
     },
     removeMoving(x: number, y: number) {
-      const index = this.moving.findIndex((m) => m.x == x && m.y == y)
-      if (index >= 0) {
-        this.moving.splice(index, 1)
+      const idx = this.moving.findIndex((m) => m.x == x && m.y == y)
+      if (idx >= 0) {
+        this.moving.splice(idx, 1)
       }
     },
     /*
@@ -120,25 +122,25 @@ export const useDesertStore = defineStore("desert", {
     },
     addSandRandomlyToRow(y: number) {
       const row = this.area[y]
-      let colIndex = null
+      let colIdx = null
       // Find random spot
       for (let i = 0; i < row.length; i++) {
         const coordinate = getRandomRowCoordinate(row.length)
         if (row[coordinate] == null) {
-          colIndex = coordinate
+          colIdx = coordinate
           break
         }
       }
       // Find first empty spot
-      if (colIndex == null) {
-        colIndex = row.findIndex((item) => item == null)
+      if (colIdx == null) {
+        colIdx = row.findIndex((item) => item == null)
       }
 
-      if (colIndex != null && colIndex >= 0) {
-        const newSand = getNewSand(colIndex, y, this.sandColorCoef)
-        row[colIndex] = newSand
+      if (colIdx != null && colIdx >= 0) {
+        const newSand = getNewSand(colIdx, y, this.sandColorCoef)
+        row[colIdx] = newSand
         this.canvas!.stage.addChild(newSand.element)
-        this.addMoving(colIndex, y)
+        this.addMoving(colIdx, y)
         this.increaseSandColor()
       }
     },
@@ -149,39 +151,37 @@ export const useDesertStore = defineStore("desert", {
       const settingsStore = useSettingsStore()
       const sandAcceleration = settingsStore.sandAcceleration
       this.moving.forEach((movingItem) => {
-        const rowIndex = movingItem.y
-        const colIndex = movingItem.x
-        const row = this.area[rowIndex]
-        const item = row[colIndex]!
-        if (now.diff(item.lastDrop) >= item.speed) {
-          const isLastRow = rowIndex >= this.areaHeight - 1
+        const rowIdx = movingItem.y
+        const colIdx = movingItem.x
+        const row = this.area[rowIdx]
+        const item = row[colIdx]!
+        let stop = rowIdx >= this.areaHeight - 1
+        if (!stop && now.diff(item.lastDrop) >= item.speed) {
           let moved = false
-          if (!isLastRow) {
-            const nextRow = this.area[rowIndex + 1]
-            // Move down
-            if (nextRow[colIndex] == null) {
-              row[colIndex] = null
-              nextRow[colIndex] = item
-              movingItem.y++
-              moved = true
-            }
-            // Move down and L/R
-            else {
-              const randomSide = Math.sign(Math.random() - 0.5) || 1
-              for (const side of [randomSide, -randomSide]) {
-                const sideIndex = colIndex + side
-                if (
-                  isCoordinateIn(sideIndex, row.length) &&
-                  row[sideIndex] == null &&
-                  nextRow[sideIndex] == null
-                ) {
-                  row[colIndex] = null
-                  nextRow[sideIndex] = item
-                  movingItem.x = sideIndex
-                  movingItem.y++
-                  moved = true
-                  break
-                }
+          const nextRow = this.area[rowIdx + 1]
+          // Move down
+          if (nextRow[colIdx] == null) {
+            row[colIdx] = null
+            nextRow[colIdx] = item
+            movingItem.y++
+            moved = true
+          }
+          // Move down and L/R
+          else {
+            const randomSide = Math.sign(Math.random() - 0.5) || 1
+            for (const side of [randomSide, -randomSide]) {
+              const sideIdx = colIdx + side
+              if (
+                isCoordinateIn(sideIdx, row.length) &&
+                row[sideIdx] == null &&
+                nextRow[sideIdx] == null
+              ) {
+                row[colIdx] = null
+                nextRow[sideIdx] = item
+                movingItem.x = sideIdx
+                movingItem.y++
+                moved = true
+                break
               }
             }
           }
@@ -193,17 +193,49 @@ export const useDesertStore = defineStore("desert", {
               movingItem.x * settingsStore.sandSize,
               movingItem.y * settingsStore.sandSize,
             )
+            if (item.static != null) {
+              item.static = null
+            }
           }
-          // No move -> stop item
-          else if (
-            isLastRow ||
-            [...Array(this.areaHeight).keys()].every(
-              (ri) => ri <= rowIndex || this.area[ri][colIndex] != null,
-            )
-          ) {
-            item.speed = 0
-            this.removeMoving(colIndex, rowIndex)
+          // Mark as static
+          else if (item.static == null) {
+            item.static = now
           }
+          // No move and static passed
+          else if (now.diff(item.static) >= SAND_MAX_STATIC) {
+            // Check temporary stucked item
+            let stucked = false
+            for (const direction of [-1, 1]) {
+              let diagonal = 1
+              while (!stucked) {
+                const stuckRowIdx = rowIdx + Math.abs(diagonal)
+                const stuckColIdx = colIdx + diagonal
+                if (
+                  !isCoordinateIn(stuckRowIdx, this.areaHeight) ||
+                  !isCoordinateIn(stuckColIdx, this.areaWidth)
+                ) {
+                  break
+                }
+                if (this.area[stuckRowIdx][stuckColIdx] == null) {
+                  stucked = true
+                } else {
+                  diagonal += direction
+                }
+              }
+            }
+            if (stucked) {
+              // Reset static
+              item.static = now
+            } else {
+              stop = true
+            }
+          }
+        }
+        if (stop) {
+          // Stop item
+          item.speed = 0
+          item.static = null
+          this.removeMoving(colIdx, rowIdx)
         }
       })
     },
@@ -258,6 +290,7 @@ function getNewSand(x: number, y: number, sandColorCoef: number): DesertItem {
 
   return {
     lastDrop: moment(),
+    static: null,
     speed: settingsStore.sandSpeed,
     color,
     element,

@@ -58,7 +58,9 @@ function trimSandDropCursor() {
         step="50"
         :disabled="runtimeStore.isRunning"
       />
-      <div :class="headerClass">Sand</div>
+      <div :class="headerClass">
+        Sand ({{ desertStore.moving.length || "_" }})
+      </div>
       <div class="text-caption">Speed - {{ settingsStore.sandSpeed }}ms</div>
       <v-slider
         v-bind="sliderAttrs"
