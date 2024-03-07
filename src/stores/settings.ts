@@ -20,16 +20,17 @@ interface SettingsState {
 }
 
 export const useSettingsStore = defineStore("settings", {
+  persist: true,
   state: (): SettingsState => ({
-    desertWidth: 400,
-    desertHeight: 250,
-    sandSpeed: 100,
-    sandAcceleration: 100,
+    desertWidth: 200,
+    desertHeight: 100,
+    sandSpeed: 200,
+    sandAcceleration: 0,
     sandSize: 4,
     sandColor: SandColor.Sand,
     sandColorChange: 0.11,
     sandDropTop: true,
-    sandDropTopSpeed: 100,
+    sandDropTopSpeed: 200,
     sandDropClick: 1,
     sandDropClickBox: 1,
     sandDropCursor: 0,

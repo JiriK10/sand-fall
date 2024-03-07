@@ -32,6 +32,82 @@ function trimSandDropCursor() {
     settingsStore.sandDropCursor = limit
   }
 }
+
+/*
+ ********** PRESETS **********
+ */
+function presetDunes() {
+  settingsStore.$patch({
+    sandSpeed: 200,
+    sandAcceleration: 0,
+    sandColor: SandColor.Sand,
+    sandColorChange: 0.11,
+    sandDropTop: true,
+    sandDropTopSpeed: 200,
+  })
+}
+function presetRelax() {
+  settingsStore.$patch({
+    sandSpeed: 1000,
+    sandAcceleration: 0,
+    sandColor: SandColor.Sand,
+    sandColorChange: 0.01,
+    sandDropTop: true,
+    sandDropTopSpeed: 5000,
+  })
+}
+function presetSandStorm() {
+  settingsStore.$patch({
+    sandSpeed: 25,
+    sandAcceleration: 100,
+    sandColor: SandColor.Sand,
+    sandColorChange: 2,
+    sandDropTop: true,
+    sandDropTopSpeed: 0,
+  })
+}
+
+function presetSnowing() {
+  settingsStore.$patch({
+    sandSpeed: 500,
+    sandAcceleration: 0,
+    sandColor: SandColor.Grey,
+    sandColorChange: 0.11,
+    sandDropTop: true,
+    sandDropTopSpeed: 200,
+  })
+}
+function presetSnowStorm() {
+  settingsStore.$patch({
+    sandSpeed: 25,
+    sandAcceleration: 100,
+    sandColor: SandColor.Grey,
+    sandColorChange: 2,
+    sandDropTop: true,
+    sandDropTopSpeed: 0,
+  })
+}
+
+function presetColorful() {
+  settingsStore.$patch({
+    sandSpeed: 125,
+    sandAcceleration: 0,
+    sandColor: SandColor.Color,
+    sandColorChange: 0.11,
+    sandDropTop: true,
+    sandDropTopSpeed: 125,
+  })
+}
+function presetColorStorm() {
+  settingsStore.$patch({
+    sandSpeed: 25,
+    sandAcceleration: 100,
+    sandColor: SandColor.Color,
+    sandColorChange: 2,
+    sandDropTop: true,
+    sandDropTopSpeed: 0,
+  })
+}
 </script>
 
 <template>
@@ -59,8 +135,19 @@ function trimSandDropCursor() {
         :disabled="runtimeStore.isRunning"
       />
       <div :class="headerClass">
-        Sand ({{ desertStore.moving.length || "_" }})
+        Sand ({{
+          (runtimeStore.isRunning && desertStore.moving.length) || "_"
+        }})
       </div>
+      <div class="text-caption">Size - {{ settingsStore.sandSize }}px</div>
+      <v-slider
+        v-bind="sliderAttrs"
+        v-model="settingsStore.sandSize"
+        min="1"
+        max="12"
+        step="1"
+        :disabled="runtimeStore.isRunning"
+      />
       <div class="text-caption">Speed - {{ settingsStore.sandSpeed }}ms</div>
       <v-slider
         v-bind="sliderAttrs"
@@ -78,15 +165,6 @@ function trimSandDropCursor() {
         min="0"
         max="1000"
         step="25"
-      />
-      <div class="text-caption">Size - {{ settingsStore.sandSize }}px</div>
-      <v-slider
-        v-bind="sliderAttrs"
-        v-model="settingsStore.sandSize"
-        min="1"
-        max="12"
-        step="1"
-        :disabled="runtimeStore.isRunning"
       />
       <div class="text-caption">Coloration</div>
       <v-btn-toggle
@@ -187,7 +265,7 @@ function trimSandDropCursor() {
         step="25"
       />
       <v-divider />
-      <div class="mt-5 flex justify-between">
+      <div class="my-4 flex justify-between">
         <v-btn
           prepend-icon="mdi-timer-sand"
           color="green-darken-1"
@@ -208,6 +286,28 @@ function trimSandDropCursor() {
           text="Clear"
           @click="desertStore.clear"
         />
+      </div>
+      <v-divider />
+      <div class="mt-4 flex flex-wrap justify-between gap-2">
+        <v-btn color="primary" text="Dunes" @click="presetDunes" />
+        <v-btn color="amber-lighten-3" text="Relax" @click="presetRelax" />
+        <v-btn
+          color="amber-darken-3"
+          text="Sand storm"
+          @click="presetSandStorm"
+        />
+        <v-btn color="grey-lighten-5" text="Snowing" @click="presetSnowing" />
+        <v-btn
+          color="grey-lighten-1"
+          text="Snow storm"
+          @click="presetSnowStorm"
+        />
+        <v-btn
+          color="deep-orange-darken-2"
+          text="Colorful"
+          @click="presetColorful"
+        />
+        <v-btn color="purple" text="Color storm" @click="presetColorStorm" />
       </div>
     </div>
   </v-navigation-drawer>
