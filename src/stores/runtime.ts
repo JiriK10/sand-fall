@@ -26,7 +26,8 @@ export const useRuntimeStore = defineStore("runtime", {
       const settingsStore = useSettingsStore()
       const desertStore = useDesertStore()
 
-      desertStore.init(settingsStore.desertWidth, settingsStore.desertHeight)
+      desertStore.init()
+      desertStore.addObstaclesBottom()
 
       this.timer = setInterval(() => {
         const now = moment()

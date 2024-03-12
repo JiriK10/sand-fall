@@ -2,7 +2,8 @@ import { Moment } from "moment"
 import * as PIXI from "pixi.js"
 
 export type DesertItem = {
-  lastDrop: Moment
+  type: "sand" | "obstacle"
+  lastDrop: Moment | null
   static: Moment | null
   speed: number
   color: string

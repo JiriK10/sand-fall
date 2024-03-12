@@ -43,30 +43,35 @@ export const useDesertStore = defineStore("desert", {
     },
   },
   actions: {
-    init(width: number, height: number) {
+    init() {
+      const settingsStore = useSettingsStore()
       let init = []
-      for (let i = 0; i < height; i++) {
+      for (let i = 0; i < settingsStore.desertHeight; i++) {
         const row: DesertRow = []
         init.push(row)
-        for (let j = 0; j < width; j++) {
+        for (let j = 0; j < settingsStore.desertWidth; j++) {
           row.push(null)
         }
       }
       this.area = init
       this.moving = []
-      this.canvas = getNewCanvas(width, height)
+      this.canvas = getNewCanvas(
+        settingsStore.desertWidth,
+        settingsStore.desertHeight,
+      )
     },
     clear() {
       for (let i = 0; i < this.area.length; i++) {
         const row = this.area[i]
         for (let j = 0; j < row.length; j++) {
-          row[j] = null
+          const item = row[j]
+          if (item?.type == "sand") {
+            item.element.destroy()
+            row[j] = null
+          }
         }
       }
       this.moving = []
-
-      this.canvas!.destroy()
-      this.canvas = getNewCanvas(this.areaWidth, this.areaHeight)
     },
     /*
      ********** MOVING ITEMS **********
@@ -145,6 +150,42 @@ export const useDesertStore = defineStore("desert", {
       }
     },
     /*
+     ********** OBSTACLES **********
+     */
+    addObstaclesBottom() {
+      const settingsStore = useSettingsStore()
+      if (settingsStore.obstaclesBottom > 0) {
+        const rowMin =
+          (1 - settingsStore.obstaclesBottomHeightMin / 100) *
+          settingsStore.desertHeight
+        const rowMax =
+          (1 - settingsStore.obstaclesBottomHeightMax / 100) *
+          settingsStore.desertHeight
+        for (
+          let obstacle = 0;
+          obstacle < settingsStore.obstaclesBottom;
+          obstacle++
+        ) {
+          const obstacleTop = Math.round(
+            Math.random() * (rowMax - rowMin) + rowMin,
+          )
+          const colIdx = Math.round(
+            ((obstacle + 1) * settingsStore.desertWidth) /
+              (settingsStore.obstaclesBottom + 1),
+          )
+          for (
+            let rowIdx = obstacleTop;
+            rowIdx < settingsStore.desertHeight;
+            rowIdx++
+          ) {
+            const newObstacle = getNewObstacle(colIdx, rowIdx)
+            this.area[rowIdx][colIdx] = newObstacle
+            this.canvas!.stage.addChild(newObstacle.element)
+          }
+        }
+      }
+    },
+    /*
      ********** AREA DROP **********
      */
     drop(now: Moment) {
@@ -153,7 +194,7 @@ export const useDesertStore = defineStore("desert", {
       this.moving.forEach((movingItem) => {
         const rowIdx = movingItem.y
         const colIdx = movingItem.x
-        const row = this.area[rowIdx]
+        const row = this.area[rowIdx] as DesertRow
         const item = row[colIdx]!
         let stop = rowIdx >= this.areaHeight - 1
         if (!stop && now.diff(item.lastDrop) >= item.speed) {
@@ -206,7 +247,7 @@ export const useDesertStore = defineStore("desert", {
             // Check temporary stucked item
             let stucked = false
             for (const direction of [-1, 1]) {
-              let diagonal = 1
+              let diagonal = direction
               while (!stucked) {
                 const stuckRowIdx = rowIdx + Math.abs(diagonal)
                 const stuckColIdx = colIdx + diagonal
@@ -216,8 +257,11 @@ export const useDesertStore = defineStore("desert", {
                 ) {
                   break
                 }
-                if (this.area[stuckRowIdx][stuckColIdx] == null) {
+                const diagonalItem = this.area[stuckRowIdx][stuckColIdx]
+                if (diagonalItem == null) {
                   stucked = true
+                } else if (diagonalItem.speed === 0) {
+                  break
                 } else {
                   diagonal += direction
                 }
@@ -236,6 +280,9 @@ export const useDesertStore = defineStore("desert", {
           item.speed = 0
           item.static = null
           this.removeMoving(colIdx, rowIdx)
+          if (settingsStore.sandStaticRed) {
+            changeSandColor(item, "#FF0000")
+          }
         }
       })
     },
@@ -289,9 +336,39 @@ function getNewSand(x: number, y: number, sandColorCoef: number): DesertItem {
   element.position.set(x * settingsStore.sandSize, y * settingsStore.sandSize)
 
   return {
+    type: "sand",
     lastDrop: moment(),
     static: null,
     speed: settingsStore.sandSpeed,
+    color,
+    element,
+  }
+}
+
+function changeSandColor(item: DesertItem, color: string) {
+  const settingsStore = useSettingsStore()
+
+  item.element.clear()
+  item.element.beginFill(color)
+  item.element.drawRect(0, 0, settingsStore.sandSize, settingsStore.sandSize)
+  item.element.endFill()
+}
+
+function getNewObstacle(x: number, y: number): DesertItem {
+  const settingsStore = useSettingsStore()
+
+  const color = "#FFC107"
+  const element = new PIXI.Graphics()
+  element.beginFill(color)
+  element.drawRect(0, 0, settingsStore.sandSize, settingsStore.sandSize)
+  element.endFill()
+  element.position.set(x * settingsStore.sandSize, y * settingsStore.sandSize)
+
+  return {
+    type: "obstacle",
+    lastDrop: null,
+    static: null,
+    speed: 0,
     color,
     element,
   }

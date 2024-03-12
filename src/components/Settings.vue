@@ -5,6 +5,8 @@ import { useDesertStore } from "../stores/desert"
 import { useRuntimeStore } from "../stores/runtime"
 
 import SettingCaption from "./SettingCaption.vue"
+import SettingSlider from "./SettingSlider.vue"
+import SettingRangeSlider from "./SettingRangeSlider.vue"
 
 const settingsStore = useSettingsStore()
 const desertStore = useDesertStore()
@@ -14,12 +16,6 @@ const headerClass = "text-h5 mt-1"
 const switchAttrs = {
   "hide-details": true,
   color: "primary",
-}
-const sliderAttrs = {
-  "thumb-label": true,
-  "hide-details": true,
-  color: "primary",
-  class: "pb-1",
 }
 
 function trimSandDropClick() {
@@ -139,18 +135,18 @@ function presetColorStorm() {
         />
       </div>
       <div :class="headerClass">Desert</div>
-      <SettingCaption text="Width" :chip="`${settingsStore.desertWidth}px`" />
-      <v-slider
-        v-bind="sliderAttrs"
+      <SettingSlider
+        text="Width"
+        :chip="`${settingsStore.desertWidth}px`"
         v-model="settingsStore.desertWidth"
         min="50"
         max="4000"
         step="50"
         :disabled="runtimeStore.isRunning"
       />
-      <SettingCaption text="Height" :chip="`${settingsStore.desertHeight}px`" />
-      <v-slider
-        v-bind="sliderAttrs"
+      <SettingSlider
+        text="Height"
+        :chip="`${settingsStore.desertHeight}px`"
         v-model="settingsStore.desertHeight"
         min="50"
         max="2000"
@@ -162,29 +158,26 @@ function presetColorStorm() {
           (runtimeStore.isRunning && desertStore.moving.length) || "_"
         }})
       </div>
-      <SettingCaption text="Size" :chip="`${settingsStore.sandSize}px`" />
-      <v-slider
-        v-bind="sliderAttrs"
+      <SettingSlider
+        text="Size"
+        :chip="`${settingsStore.sandSize}px`"
         v-model="settingsStore.sandSize"
         min="1"
         max="12"
         step="1"
         :disabled="runtimeStore.isRunning"
       />
-      <SettingCaption text="Speed" :chip="`${settingsStore.sandSpeed}ms`" />
-      <v-slider
-        v-bind="sliderAttrs"
+      <SettingSlider
+        text="Speed"
+        :chip="`${settingsStore.sandSpeed}ms`"
         v-model="settingsStore.sandSpeed"
         min="25"
         max="5000"
         step="25"
       />
-      <SettingCaption
+      <SettingSlider
         text="Acceleration"
         :chip="`${settingsStore.sandAcceleration}ms`"
-      />
-      <v-slider
-        v-bind="sliderAttrs"
         v-model="settingsStore.sandAcceleration"
         min="0"
         max="1000"
@@ -196,19 +189,25 @@ function presetColorStorm() {
         mandatory
         color="primary"
         variant="flat"
-        density="comfortable"
-        class="mb-2"
+        density="compact"
+        class="mb-1"
       >
         <v-btn :value="SandColor.Sand" :text="SandColor.Sand.toString()" />
         <v-btn :value="SandColor.Grey" :text="SandColor.Grey.toString()" />
         <v-btn :value="SandColor.Color" :text="SandColor.Color.toString()" />
       </v-btn-toggle>
-      <SettingCaption
+      <v-btn-toggle
+        v-model="settingsStore.sandStaticRed"
+        color="red"
+        variant="flat"
+        density="compact"
+        class="mb-1 ml-2"
+      >
+        <v-btn :value="true" text="Static" />
+      </v-btn-toggle>
+      <SettingSlider
         text="Coloration change during time"
         :chip="`${settingsStore.sandColorChange}%`"
-      />
-      <v-slider
-        v-bind="sliderAttrs"
         v-model="settingsStore.sandColorChange"
         min="0"
         max="2"
@@ -222,12 +221,9 @@ function presetColorStorm() {
           density="compact"
         />
       </div>
-      <SettingCaption
+      <SettingSlider
         text="Drop every"
         :chip="`${settingsStore.sandDropTopSpeed}ms`"
-      />
-      <v-slider
-        v-bind="sliderAttrs"
         v-model="settingsStore.sandDropTopSpeed"
         min="0"
         max="10000"
@@ -237,12 +233,9 @@ function presetColorStorm() {
       <div :class="headerClass">Drop sand on click</div>
       <div class="flex">
         <div class="w-20">
-          <SettingCaption
+          <SettingSlider
             text="Box"
             :chip="`${settingsStore.sandDropClickBox}x${settingsStore.sandDropClickBox}`"
-          />
-          <v-slider
-            v-bind="sliderAttrs"
             v-model="settingsStore.sandDropClickBox"
             @update:modelValue="trimSandDropClick()"
             min="1"
@@ -251,12 +244,9 @@ function presetColorStorm() {
           />
         </div>
         <div class="flex-grow">
-          <SettingCaption
+          <SettingSlider
             text="Amount"
             :chip="`${settingsStore.sandDropClick}`"
-          />
-          <v-slider
-            v-bind="sliderAttrs"
             v-model="settingsStore.sandDropClick"
             min="0"
             :max="Math.pow(settingsStore.sandDropClickBox, 2)"
@@ -267,12 +257,9 @@ function presetColorStorm() {
       <div :class="headerClass">Drop sand under cursor</div>
       <div class="flex">
         <div class="w-20">
-          <SettingCaption
+          <SettingSlider
             text="Box"
             :chip="`${settingsStore.sandDropCursorBox}x${settingsStore.sandDropCursorBox}`"
-          />
-          <v-slider
-            v-bind="sliderAttrs"
             v-model="settingsStore.sandDropCursorBox"
             @update:modelValue="trimSandDropCursor()"
             min="1"
@@ -281,12 +268,9 @@ function presetColorStorm() {
           />
         </div>
         <div class="flex-grow">
-          <SettingCaption
+          <SettingSlider
             text="Amount"
             :chip="`${settingsStore.sandDropCursor}`"
-          />
-          <v-slider
-            v-bind="sliderAttrs"
             v-model="settingsStore.sandDropCursor"
             min="0"
             :max="Math.pow(settingsStore.sandDropCursorBox, 2)"
@@ -294,16 +278,32 @@ function presetColorStorm() {
           />
         </div>
       </div>
-      <SettingCaption
+      <SettingSlider
         text="Speed"
         :chip="`${settingsStore.sandDropCursorSpeed}ms`"
-      />
-      <v-slider
-        v-bind="sliderAttrs"
         v-model="settingsStore.sandDropCursorSpeed"
         min="0"
         max="10000"
         step="25"
+      />
+      <div :class="headerClass">Obstacles - Bottom</div>
+      <SettingSlider
+        text="Amount"
+        :chip="`${settingsStore.obstaclesBottom}`"
+        v-model="settingsStore.obstaclesBottom"
+        min="0"
+        max="50"
+        step="1"
+        :disabled="runtimeStore.isRunning"
+      />
+      <SettingRangeSlider
+        text="Height"
+        :chip="`${settingsStore.obstaclesBottomHeightMin}-${settingsStore.obstaclesBottomHeightMax}%`"
+        v-model="settingsStore.obstaclesBottomHeight"
+        min="1"
+        max="50"
+        step="1"
+        :disabled="runtimeStore.isRunning"
       />
       <div :class="headerClass">Presets</div>
       <div class="mt-1 flex flex-wrap justify-between gap-2">

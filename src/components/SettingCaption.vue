@@ -1,8 +1,8 @@
 <script setup lang="ts">
-defineProps({
-  text: String,
-  chip: String,
-})
+defineProps<{
+  text: string
+  chip?: string
+}>()
 </script>
 
 <template>
