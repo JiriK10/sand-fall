@@ -18,6 +18,8 @@ interface SettingsState {
   sandDropCursor: number
   sandDropCursorBox: number
   sandDropCursorSpeed: number
+  obstaclesTop: number
+  obstaclesTopPlacement: [number, number]
   obstaclesBottom: number
   obstaclesBottomHeight: [number, number]
 }
@@ -40,10 +42,14 @@ export const useSettingsStore = defineStore("settings", {
     sandDropCursor: 0,
     sandDropCursorBox: 1,
     sandDropCursorSpeed: 100,
+    obstaclesTop: 0,
+    obstaclesTopPlacement: [20, 50],
     obstaclesBottom: 0,
     obstaclesBottomHeight: [10, 30],
   }),
   getters: {
+    obstaclesTopPlacementMin: (state) => state.obstaclesTopPlacement[0],
+    obstaclesTopPlacementMax: (state) => state.obstaclesTopPlacement[1],
     obstaclesBottomHeightMin: (state) => state.obstaclesBottomHeight[0],
     obstaclesBottomHeightMax: (state) => state.obstaclesBottomHeight[1],
   },

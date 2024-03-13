@@ -286,6 +286,25 @@ function presetColorStorm() {
         max="10000"
         step="25"
       />
+      <div :class="headerClass">Obstacles - Top</div>
+      <SettingSlider
+        text="Amount"
+        :chip="`${settingsStore.obstaclesTop}`"
+        v-model="settingsStore.obstaclesTop"
+        min="0"
+        max="100"
+        step="1"
+        :disabled="runtimeStore.isRunning"
+      />
+      <SettingRangeSlider
+        text="Placement in top"
+        :chip="`${settingsStore.obstaclesTopPlacementMin}-${settingsStore.obstaclesTopPlacementMax}%`"
+        v-model="settingsStore.obstaclesTopPlacement"
+        min="0"
+        max="80"
+        step="1"
+        :disabled="runtimeStore.isRunning"
+      />
       <div :class="headerClass">Obstacles - Bottom</div>
       <SettingSlider
         text="Amount"

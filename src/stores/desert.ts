@@ -103,11 +103,11 @@ export const useDesertStore = defineStore("desert", {
       const desertCursorStore = useDesertCursorStore()
       if (!desertCursorStore.isOutside) {
         for (let i = 0; i < amount; i++) {
-          const randomX = getRandomPointCoordinate(
+          const randomX = getRandomCoordinateInBox(
             desertCursorStore.cursorX,
             box,
           )
-          const randomY = getRandomPointCoordinate(
+          const randomY = getRandomCoordinateInBox(
             desertCursorStore.cursorY,
             box,
           )
@@ -130,7 +130,7 @@ export const useDesertStore = defineStore("desert", {
       let colIdx = null
       // Find random spot
       for (let i = 0; i < row.length; i++) {
-        const coordinate = getRandomRowCoordinate(row.length)
+        const coordinate = getRandomCoordinate(row.length - 1)
         if (row[coordinate] == null) {
           colIdx = coordinate
           break
@@ -152,32 +152,66 @@ export const useDesertStore = defineStore("desert", {
     /*
      ********** OBSTACLES **********
      */
+    addObstacles() {
+      this.addObstaclesBottom()
+      this.addObstaclesTop()
+    },
+    addObstaclesTop() {
+      const settingsStore = useSettingsStore()
+      if (settingsStore.obstaclesTop > 0) {
+        const diffRowMin = 0.01 * this.areaHeight
+        const diffRowMax = 0.2 * this.areaHeight
+        const diffColMin = 0.01 * this.areaWidth
+        const diffColMax = 0.2 * this.areaWidth
+        const rowMin =
+          (settingsStore.obstaclesTopPlacementMin / 100) * this.areaHeight
+        const rowMax =
+          (settingsStore.obstaclesTopPlacementMax / 100) * this.areaHeight
+        for (let o = 0; o < settingsStore.obstaclesTop; o++) {
+          const startRowIdx = getRandomCoordinate(rowMax, rowMin)
+          const startColIdx = getRandomCoordinate(this.areaWidth - 1)
+          const endRowIdx =
+            startRowIdx + getRandomCoordinate(diffRowMax, diffRowMin)
+          const endColIdx = trimCoordinate(
+            startColIdx +
+              getRandomSign() * getRandomCoordinate(diffColMax, diffColMin),
+            this.areaWidth,
+          )
+
+          const line = bresenhamsLine(
+            startColIdx,
+            startRowIdx,
+            endColIdx,
+            endRowIdx,
+          )
+          line.forEach((point) => {
+            if (this.area[point.y][point.x] == null) {
+              const newObstacle = getNewObstacle(point.x, point.y)
+              this.area[point.y][point.x] = newObstacle
+              this.canvas!.stage.addChild(newObstacle.element)
+            }
+          })
+        }
+      }
+    },
     addObstaclesBottom() {
       const settingsStore = useSettingsStore()
       if (settingsStore.obstaclesBottom > 0) {
         const rowMin =
-          (1 - settingsStore.obstaclesBottomHeightMin / 100) *
-          settingsStore.desertHeight
+          (1 - settingsStore.obstaclesBottomHeightMin / 100) * this.areaHeight
         const rowMax =
-          (1 - settingsStore.obstaclesBottomHeightMax / 100) *
-          settingsStore.desertHeight
+          (1 - settingsStore.obstaclesBottomHeightMax / 100) * this.areaHeight
         for (
           let obstacle = 0;
           obstacle < settingsStore.obstaclesBottom;
           obstacle++
         ) {
-          const obstacleTop = Math.round(
-            Math.random() * (rowMax - rowMin) + rowMin,
-          )
+          const obstacleTop = getRandomCoordinate(rowMax, rowMin)
           const colIdx = Math.round(
-            ((obstacle + 1) * settingsStore.desertWidth) /
+            ((obstacle + 1) * this.areaWidth) /
               (settingsStore.obstaclesBottom + 1),
           )
-          for (
-            let rowIdx = obstacleTop;
-            rowIdx < settingsStore.desertHeight;
-            rowIdx++
-          ) {
+          for (let rowIdx = obstacleTop; rowIdx < this.areaHeight; rowIdx++) {
             const newObstacle = getNewObstacle(colIdx, rowIdx)
             this.area[rowIdx][colIdx] = newObstacle
             this.canvas!.stage.addChild(newObstacle.element)
@@ -209,7 +243,7 @@ export const useDesertStore = defineStore("desert", {
           }
           // Move down and L/R
           else {
-            const randomSide = Math.sign(Math.random() - 0.5) || 1
+            const randomSide = getRandomSign()
             for (const side of [randomSide, -randomSide]) {
               const sideIdx = colIdx + side
               if (
@@ -247,23 +281,20 @@ export const useDesertStore = defineStore("desert", {
             // Check temporary stucked item
             let stucked = false
             for (const direction of [-1, 1]) {
-              let diagonal = direction
-              while (!stucked) {
-                const stuckRowIdx = rowIdx + Math.abs(diagonal)
-                const stuckColIdx = colIdx + diagonal
-                if (
-                  !isCoordinateIn(stuckRowIdx, this.areaHeight) ||
-                  !isCoordinateIn(stuckColIdx, this.areaWidth)
-                ) {
-                  break
+              const diagonalRowIdx = rowIdx + Math.abs(direction)
+              const diagonalColIdx = colIdx + direction
+              if (
+                isCoordinateIn(diagonalRowIdx, this.areaHeight) &&
+                isCoordinateIn(diagonalColIdx, this.areaWidth)
+              ) {
+                // Item is blocked by static item next to it
+                if (this.area[rowIdx][diagonalColIdx]?.speed === 0) {
+                  continue
                 }
-                const diagonalItem = this.area[stuckRowIdx][stuckColIdx]
-                if (diagonalItem == null) {
+                const diagonalItem = this.area[diagonalRowIdx][diagonalColIdx]
+                // Is stucked
+                if (diagonalItem == null || diagonalItem.speed > 0) {
                   stucked = true
-                } else if (diagonalItem.speed === 0) {
-                  break
-                } else {
-                  diagonal += direction
                 }
               }
             }
@@ -289,14 +320,24 @@ export const useDesertStore = defineStore("desert", {
   },
 })
 
-function getRandomRowCoordinate(limit: number) {
-  return Math.round(Math.random() * (limit - 1))
+function getRandomSign() {
+  return Math.sign(Math.random() - 0.5) || 1
 }
 
-function getRandomPointCoordinate(center: number, width: number) {
+function getRandomCoordinate(max: number, min: number = 0) {
+  return Math.round(Math.random() * (max - min) + min)
+}
+
+function getRandomCoordinateInBox(center: number, width: number) {
   return (
     center - Math.floor(width / 2) + Math.round(Math.random() * (width - 1))
   )
+}
+
+function trimCoordinate(coordinate: number, max: number, min: number = 0) {
+  if (coordinate < min) return min
+  if (coordinate > max) return max
+  return coordinate
 }
 
 function isCoordinateIn(coordinate: number, limit: number) {
@@ -372,4 +413,40 @@ function getNewObstacle(x: number, y: number): DesertItem {
     color,
     element,
   }
+}
+
+function bresenhamsLine(
+  startX: number,
+  startY: number,
+  endX: number,
+  endY: number,
+) {
+  const deltaX = Math.abs(endX - startX)
+  const deltaY = -Math.abs(endY - startY)
+  const stepX = startX < endX ? 1 : -1
+  const stepY = startY < endY ? 1 : -1
+
+  const points = []
+  let pointX = startX
+  let pointY = startY
+  let error = deltaX + deltaY
+  let doubleError
+  while (true) {
+    points.push({ x: pointX, y: pointY })
+
+    if (pointX == endX && pointY == endY) {
+      break
+    }
+
+    doubleError = 2 * error
+    if (doubleError >= deltaY) {
+      error += deltaY
+      pointX += stepX
+    }
+    if (doubleError <= deltaX) {
+      error += deltaX
+      pointY += stepY
+    }
+  }
+  return points
 }
