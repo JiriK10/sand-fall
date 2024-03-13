@@ -137,7 +137,7 @@ function presetColorStorm() {
       <div :class="headerClass">Desert</div>
       <SettingSlider
         text="Width"
-        :chip="`${settingsStore.desertWidth}px`"
+        :chip="`${settingsStore.desertWidth} items`"
         v-model="settingsStore.desertWidth"
         min="50"
         max="4000"
@@ -146,11 +146,20 @@ function presetColorStorm() {
       />
       <SettingSlider
         text="Height"
-        :chip="`${settingsStore.desertHeight}px`"
+        :chip="`${settingsStore.desertHeight} items`"
         v-model="settingsStore.desertHeight"
         min="50"
         max="2000"
         step="50"
+        :disabled="runtimeStore.isRunning"
+      />
+      <SettingSlider
+        text="Item size"
+        :chip="`${settingsStore.desertItemSize} px`"
+        v-model="settingsStore.desertItemSize"
+        min="1"
+        max="12"
+        step="1"
         :disabled="runtimeStore.isRunning"
       />
       <div :class="headerClass">
@@ -159,17 +168,8 @@ function presetColorStorm() {
         }})
       </div>
       <SettingSlider
-        text="Size"
-        :chip="`${settingsStore.sandSize}px`"
-        v-model="settingsStore.sandSize"
-        min="1"
-        max="12"
-        step="1"
-        :disabled="runtimeStore.isRunning"
-      />
-      <SettingSlider
         text="Speed"
-        :chip="`${settingsStore.sandSpeed}ms`"
+        :chip="`${settingsStore.sandSpeed} ms`"
         v-model="settingsStore.sandSpeed"
         min="25"
         max="5000"
@@ -177,7 +177,7 @@ function presetColorStorm() {
       />
       <SettingSlider
         text="Acceleration"
-        :chip="`${settingsStore.sandAcceleration}ms`"
+        :chip="`${settingsStore.sandAcceleration} ms`"
         v-model="settingsStore.sandAcceleration"
         min="0"
         max="1000"
@@ -207,7 +207,7 @@ function presetColorStorm() {
       </v-btn-toggle>
       <SettingSlider
         text="Coloration change during time"
-        :chip="`${settingsStore.sandColorChange}%`"
+        :chip="`${settingsStore.sandColorChange} %`"
         v-model="settingsStore.sandColorChange"
         min="0"
         max="2"
@@ -223,7 +223,7 @@ function presetColorStorm() {
       </div>
       <SettingSlider
         text="Drop every"
-        :chip="`${settingsStore.sandDropTopSpeed}ms`"
+        :chip="`${settingsStore.sandDropTopSpeed} ms`"
         v-model="settingsStore.sandDropTopSpeed"
         min="0"
         max="10000"
@@ -280,7 +280,7 @@ function presetColorStorm() {
       </div>
       <SettingSlider
         text="Speed"
-        :chip="`${settingsStore.sandDropCursorSpeed}ms`"
+        :chip="`${settingsStore.sandDropCursorSpeed} ms`"
         v-model="settingsStore.sandDropCursorSpeed"
         min="0"
         max="10000"
@@ -298,7 +298,7 @@ function presetColorStorm() {
       />
       <SettingRangeSlider
         text="Placement in top"
-        :chip="`${settingsStore.obstaclesTopPlacementMin}-${settingsStore.obstaclesTopPlacementMax}%`"
+        :chip="`${settingsStore.obstaclesTopPlacementMin}-${settingsStore.obstaclesTopPlacementMax} %`"
         v-model="settingsStore.obstaclesTopPlacement"
         min="0"
         max="80"
@@ -317,7 +317,7 @@ function presetColorStorm() {
       />
       <SettingRangeSlider
         text="Height"
-        :chip="`${settingsStore.obstaclesBottomHeightMin}-${settingsStore.obstaclesBottomHeightMax}%`"
+        :chip="`${settingsStore.obstaclesBottomHeightMin}-${settingsStore.obstaclesBottomHeightMax} %`"
         v-model="settingsStore.obstaclesBottomHeight"
         min="1"
         max="50"

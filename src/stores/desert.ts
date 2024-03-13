@@ -224,7 +224,6 @@ export const useDesertStore = defineStore("desert", {
      */
     drop(now: Moment) {
       const settingsStore = useSettingsStore()
-      const sandAcceleration = settingsStore.sandAcceleration
       this.moving.forEach((movingItem) => {
         const rowIdx = movingItem.y
         const colIdx = movingItem.x
@@ -263,10 +262,13 @@ export const useDesertStore = defineStore("desert", {
           // Update item after move
           if (moved) {
             item.lastDrop = now
-            item.speed = Math.max(10, item.speed - sandAcceleration)
+            item.speed = Math.max(
+              10,
+              item.speed - settingsStore.sandAcceleration,
+            )
             item.element.position.set(
-              movingItem.x * settingsStore.sandSize,
-              movingItem.y * settingsStore.sandSize,
+              movingItem.x * settingsStore.desertItemSize,
+              movingItem.y * settingsStore.desertItemSize,
             )
             if (item.static != null) {
               item.static = null
@@ -348,8 +350,8 @@ function getNewCanvas(width: number, height: number) {
   const settingsStore = useSettingsStore()
   return new PIXI.Application({
     backgroundColor: "#9E9E9E",
-    width: width * settingsStore.sandSize,
-    height: height * settingsStore.sandSize,
+    width: width * settingsStore.desertItemSize,
+    height: height * settingsStore.desertItemSize,
     premultipliedAlpha: false,
     antialias: false,
   })
@@ -372,9 +374,17 @@ function getNewSand(x: number, y: number, sandColorCoef: number): DesertItem {
   const color = getSandColor(settingsStore.sandColor, sandColorCoef)
   const element = new PIXI.Graphics()
   element.beginFill(color)
-  element.drawRect(0, 0, settingsStore.sandSize, settingsStore.sandSize)
+  element.drawRect(
+    0,
+    0,
+    settingsStore.desertItemSize,
+    settingsStore.desertItemSize,
+  )
   element.endFill()
-  element.position.set(x * settingsStore.sandSize, y * settingsStore.sandSize)
+  element.position.set(
+    x * settingsStore.desertItemSize,
+    y * settingsStore.desertItemSize,
+  )
 
   return {
     type: "sand",
@@ -391,7 +401,12 @@ function changeSandColor(item: DesertItem, color: string) {
 
   item.element.clear()
   item.element.beginFill(color)
-  item.element.drawRect(0, 0, settingsStore.sandSize, settingsStore.sandSize)
+  item.element.drawRect(
+    0,
+    0,
+    settingsStore.desertItemSize,
+    settingsStore.desertItemSize,
+  )
   item.element.endFill()
 }
 
@@ -401,9 +416,17 @@ function getNewObstacle(x: number, y: number): DesertItem {
   const color = "#FFC107"
   const element = new PIXI.Graphics()
   element.beginFill(color)
-  element.drawRect(0, 0, settingsStore.sandSize, settingsStore.sandSize)
+  element.drawRect(
+    0,
+    0,
+    settingsStore.desertItemSize,
+    settingsStore.desertItemSize,
+  )
   element.endFill()
-  element.position.set(x * settingsStore.sandSize, y * settingsStore.sandSize)
+  element.position.set(
+    x * settingsStore.desertItemSize,
+    y * settingsStore.desertItemSize,
+  )
 
   return {
     type: "obstacle",
