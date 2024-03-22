@@ -22,6 +22,11 @@ interface SettingsState {
   obstaclesTopPlacement: [number, number]
   obstaclesBottom: number
   obstaclesBottomHeight: [number, number]
+  bombSpeed: number
+  bombAcceleration: number
+  bombDropTop: boolean
+  bombDropTopSpeed: number
+  bombDropClick: boolean
 }
 
 export const useSettingsStore = defineStore("settings", {
@@ -46,6 +51,11 @@ export const useSettingsStore = defineStore("settings", {
     obstaclesTopPlacement: [20, 50],
     obstaclesBottom: 0,
     obstaclesBottomHeight: [10, 30],
+    bombSpeed: 100,
+    bombAcceleration: 0,
+    bombDropTop: false,
+    bombDropTopSpeed: 200,
+    bombDropClick: false,
   }),
   getters: {
     obstaclesTopPlacementMin: (state) => state.obstaclesTopPlacement[0],

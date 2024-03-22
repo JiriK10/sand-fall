@@ -40,6 +40,7 @@ function presetDunes() {
     sandAcceleration: 0,
     sandColor: SandColor.Sand,
     sandColorChange: 0.11,
+    sandStaticRed: false,
     sandDropTop: true,
     sandDropTopSpeed: 200,
   })
@@ -50,6 +51,7 @@ function presetRelax() {
     sandAcceleration: 0,
     sandColor: SandColor.Sand,
     sandColorChange: 0.01,
+    sandStaticRed: false,
     sandDropTop: true,
     sandDropTopSpeed: 5000,
   })
@@ -60,6 +62,7 @@ function presetSandStorm() {
     sandAcceleration: 100,
     sandColor: SandColor.Sand,
     sandColorChange: 2,
+    sandStaticRed: false,
     sandDropTop: true,
     sandDropTopSpeed: 0,
   })
@@ -71,6 +74,7 @@ function presetSnowing() {
     sandAcceleration: 0,
     sandColor: SandColor.Grey,
     sandColorChange: 0.11,
+    sandStaticRed: false,
     sandDropTop: true,
     sandDropTopSpeed: 200,
   })
@@ -81,6 +85,7 @@ function presetSnowStorm() {
     sandAcceleration: 100,
     sandColor: SandColor.Grey,
     sandColorChange: 2,
+    sandStaticRed: false,
     sandDropTop: true,
     sandDropTopSpeed: 0,
   })
@@ -92,6 +97,7 @@ function presetColorful() {
     sandAcceleration: 0,
     sandColor: SandColor.Color,
     sandColorChange: 0.11,
+    sandStaticRed: false,
     sandDropTop: true,
     sandDropTopSpeed: 125,
   })
@@ -102,8 +108,26 @@ function presetColorStorm() {
     sandAcceleration: 100,
     sandColor: SandColor.Color,
     sandColorChange: 2,
+    sandStaticRed: false,
     sandDropTop: true,
     sandDropTopSpeed: 0,
+  })
+}
+
+function presetBombFree() {
+  settingsStore.$patch({
+    bombDropTop: false,
+    bombDropClick: false,
+  })
+}
+function presetArmageddon() {
+  settingsStore.$patch({
+    bombSpeed: 100,
+    bombAcceleration: 25,
+    bombDropTop: true,
+    bombDropTopSpeed: 50,
+    bombDropClick: true,
+    sandDropClick: 0,
   })
 }
 </script>
@@ -163,9 +187,7 @@ function presetColorStorm() {
         :disabled="runtimeStore.isRunning"
       />
       <div :class="headerClass">
-        Sand ({{
-          (runtimeStore.isRunning && desertStore.moving.length) || "_"
-        }})
+        Sand ({{ (runtimeStore.isRunning && desertStore.movingSand) || "_" }})
       </div>
       <SettingSlider
         text="Speed"
@@ -248,6 +270,12 @@ function presetColorStorm() {
             text="Amount"
             :chip="`${settingsStore.sandDropClick}`"
             v-model="settingsStore.sandDropClick"
+            @update:modelValue="
+              (val) =>
+                val > 0 &&
+                settingsStore.bombDropClick &&
+                (settingsStore.bombDropClick = false)
+            "
             min="0"
             :max="Math.pow(settingsStore.sandDropClickBox, 2)"
             step="1"
@@ -324,6 +352,51 @@ function presetColorStorm() {
         step="1"
         :disabled="runtimeStore.isRunning"
       />
+      <div :class="headerClass">
+        Bombs ({{ (runtimeStore.isRunning && desertStore.movingBombs) || "_" }})
+      </div>
+      <SettingSlider
+        text="Speed"
+        :chip="`${settingsStore.bombSpeed} ms`"
+        v-model="settingsStore.bombSpeed"
+        min="25"
+        max="5000"
+        step="25"
+      />
+      <SettingSlider
+        text="Acceleration"
+        :chip="`${settingsStore.bombAcceleration} ms`"
+        v-model="settingsStore.bombAcceleration"
+        min="0"
+        max="1000"
+        step="25"
+      />
+      <div class="flex flex-row justify-center" :class="headerClass">
+        <span class="mr-6">Drop bomb from top</span>
+        <v-switch
+          v-bind="switchAttrs"
+          v-model="settingsStore.bombDropTop"
+          density="compact"
+        />
+      </div>
+      <SettingSlider
+        text="Drop every"
+        :chip="`${settingsStore.bombDropTopSpeed} ms`"
+        v-model="settingsStore.bombDropTopSpeed"
+        min="0"
+        max="10000"
+        step="25"
+        :disabled="!settingsStore.bombDropTop"
+      />
+      <div class="flex flex-row justify-center" :class="headerClass">
+        <span class="mr-6">Drop bomb on click</span>
+        <v-switch
+          v-bind="switchAttrs"
+          v-model="settingsStore.bombDropClick"
+          @update:modelValue="(val) => val && (settingsStore.sandDropClick = 0)"
+          density="compact"
+        />
+      </div>
       <div :class="headerClass">Presets</div>
       <div class="mt-1 flex flex-wrap justify-between gap-2">
         <v-btn color="primary" text="Dunes" @click="presetDunes" />
@@ -345,6 +418,8 @@ function presetColorStorm() {
           @click="presetColorful"
         />
         <v-btn color="purple" text="Color storm" @click="presetColorStorm" />
+        <v-btn color="green" text="Bomb free" @click="presetBombFree" />
+        <v-btn color="red" text="Armageddon" @click="presetArmageddon" />
       </div>
     </div>
   </v-navigation-drawer>

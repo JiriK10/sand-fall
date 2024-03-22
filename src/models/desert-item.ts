@@ -1,11 +1,17 @@
 import { Moment } from "moment"
 import * as PIXI from "pixi.js"
 
+export enum DesertItemType {
+  Sand,
+  Obstacle,
+  Bomb,
+}
+
 export type DesertItem = {
-  type: "sand" | "obstacle"
+  type: DesertItemType
   lastDrop: Moment | null
   static: Moment | null
   speed: number
-  color: string
-  element: PIXI.Graphics
+  color: string | null
+  element: PIXI.Graphics | PIXI.Sprite
 }

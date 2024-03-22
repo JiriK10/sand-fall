@@ -7,6 +7,8 @@ import { useDesertStore } from "../stores/desert"
 import { useDesertCursorStore } from "../stores/desert-cursor"
 import { useRuntimeStore } from "../stores/runtime"
 
+import { DesertItemType } from "../models/desert-item"
+
 const area = ref<HTMLElement>()
 
 const settingsStore = useSettingsStore()
@@ -29,10 +31,13 @@ desertStore.$onAction(({ name, store, after }) => {
 
 function dropSand() {
   if (settingsStore.sandDropClick > 0) {
-    desertStore.addSandToCursor(
+    desertStore.addItemToCursor(
       settingsStore.sandDropClick,
       settingsStore.sandDropClickBox,
+      DesertItemType.Sand,
     )
+  } else if (settingsStore.bombDropClick) {
+    desertStore.addItemToCursor(1, 1, DesertItemType.Bomb)
   }
 }
 </script>

@@ -4,10 +4,13 @@ import moment, { Moment } from "moment"
 import { useSettingsStore } from "../stores/settings"
 import { useDesertStore } from "../stores/desert"
 
+import { DesertItemType } from "../models/desert-item"
+
 export interface RuntimeState {
   timer: number | null
   lastSandDropTop: Moment | null
   lastSandDropCursor: Moment | null
+  lastBombDropTop: Moment | null
 }
 
 export const useRuntimeStore = defineStore("runtime", {
@@ -15,6 +18,7 @@ export const useRuntimeStore = defineStore("runtime", {
     timer: null,
     lastSandDropTop: null,
     lastSandDropCursor: null,
+    lastBombDropTop: null,
   }),
   getters: {
     isRunning(state) {
@@ -39,7 +43,15 @@ export const useRuntimeStore = defineStore("runtime", {
           hasPassed(now, this.lastSandDropTop, settingsStore.sandDropTopSpeed)
         ) {
           this.lastSandDropTop = now
-          desertStore.addSandRandomlyToRow(0)
+          desertStore.addItemRandomlyToRow(0, DesertItemType.Sand)
+        }
+        // Drop new bomb from top
+        if (
+          settingsStore.bombDropTop &&
+          hasPassed(now, this.lastBombDropTop, settingsStore.bombDropTopSpeed)
+        ) {
+          this.lastBombDropTop = now
+          desertStore.addItemRandomlyToRow(0, DesertItemType.Bomb)
         }
         // Drop new sand under cursor
         if (
@@ -51,9 +63,10 @@ export const useRuntimeStore = defineStore("runtime", {
           )
         ) {
           this.lastSandDropCursor = now
-          desertStore.addSandToCursor(
+          desertStore.addItemToCursor(
             settingsStore.sandDropCursor,
             settingsStore.sandDropCursorBox,
+            DesertItemType.Sand,
           )
         }
         // Stop when desert is full

@@ -6,15 +6,19 @@ import { useSettingsStore } from "../stores/settings"
 import { useDesertCursorStore } from "../stores/desert-cursor"
 
 import { DesertRow } from "../models/desert-row"
-import { DesertItem } from "../models/desert-item"
+import { DesertItem, DesertItemType } from "../models/desert-item"
 import { SandColor } from "../models/sand-color"
 
-const SAND_MAX_STATIC = 500 // ms
+const ITEM_MAX_STATIC = 500 // ms
+
+const TEXTURE_BOMB = PIXI.Texture.from("./src/assets/bomb.png")
 
 export interface DesertState {
   canvas: PIXI.Application | null
   area: Array<DesertRow>
-  moving: Array<{ x: number; y: number }>
+  moving: Array<{ row: number; col: number }>
+  movingSand: number
+  movingBombs: number
   sandColorCoef: number
 }
 
@@ -23,6 +27,8 @@ export const useDesertStore = defineStore("desert", {
     canvas: null,
     area: [],
     moving: [],
+    movingSand: 0,
+    movingBombs: 0,
     sandColorCoef: 0,
   }),
   getters: {
@@ -55,6 +61,8 @@ export const useDesertStore = defineStore("desert", {
       }
       this.area = init
       this.moving = []
+      this.movingSand = 0
+      this.movingBombs = 0
       this.canvas = getNewCanvas(
         settingsStore.desertWidth,
         settingsStore.desertHeight,
@@ -65,28 +73,48 @@ export const useDesertStore = defineStore("desert", {
         const row = this.area[i]
         for (let j = 0; j < row.length; j++) {
           const item = row[j]
-          if (item?.type == "sand") {
+          if (item != null && item.type != DesertItemType.Obstacle) {
             item.element.destroy()
             row[j] = null
           }
         }
       }
       this.moving = []
+      this.movingSand = 0
+      this.movingBombs = 0
     },
     /*
      ********** MOVING ITEMS **********
      */
-    addMoving(x: number, y: number) {
-      this.moving.push({ x, y })
+    addMoving(rowIdx: number, colIdx: number, type: DesertItemType) {
+      this.moving.push({ row: rowIdx, col: colIdx })
+      switch (type) {
+        case DesertItemType.Sand:
+          this.movingSand++
+          break
+        case DesertItemType.Bomb:
+          this.movingBombs++
+          break
+      }
     },
-    removeMoving(x: number, y: number) {
-      const idx = this.moving.findIndex((m) => m.x == x && m.y == y)
+    removeMoving(rowIdx: number, colIdx: number, type: DesertItemType) {
+      const idx = this.moving.findIndex(
+        (m) => m.row == rowIdx && m.col == colIdx,
+      )
       if (idx >= 0) {
         this.moving.splice(idx, 1)
+        switch (type) {
+          case DesertItemType.Sand:
+            this.movingSand--
+            break
+          case DesertItemType.Bomb:
+            this.movingBombs--
+            break
+        }
       }
     },
     /*
-     ********** SAND **********
+     ********** SAND / BOMBS **********
      */
     increaseSandColor() {
       const settingsStore = useSettingsStore()
@@ -99,34 +127,39 @@ export const useDesertStore = defineStore("desert", {
           this.sandColorCoef == 1 && newColor == 1 ? 0 : newColor
       }
     },
-    addSandToCursor(amount: number, box: number) {
+    addItemToCursor(amount: number, box: number, type: DesertItemType) {
       const desertCursorStore = useDesertCursorStore()
       if (!desertCursorStore.isOutside) {
         for (let i = 0; i < amount; i++) {
-          const randomX = getRandomCoordinateInBox(
-            desertCursorStore.cursorX,
-            box,
-          )
-          const randomY = getRandomCoordinateInBox(
+          const rowIdx = getRandomCoordinateInBox(
             desertCursorStore.cursorY,
             box,
           )
+          const colIdx = getRandomCoordinateInBox(
+            desertCursorStore.cursorX,
+            box,
+          )
           if (
-            isCoordinateIn(randomX, this.areaWidth) &&
-            isCoordinateIn(randomY, this.areaHeight) &&
-            this.area[randomY][randomX] == null
+            isCoordinateIn(rowIdx, this.areaHeight) &&
+            isCoordinateIn(colIdx, this.areaWidth) &&
+            this.area[rowIdx][colIdx] == null
           ) {
-            const newSand = getNewSand(randomX, randomY, this.sandColorCoef)
-            this.area[randomY][randomX] = newSand
-            this.canvas!.stage.addChild(newSand.element)
-            this.addMoving(randomX, randomY)
-            this.increaseSandColor()
+            const newItem =
+              type == DesertItemType.Bomb
+                ? getNewBomb(rowIdx, colIdx)
+                : getNewSand(rowIdx, colIdx, this.sandColorCoef)
+            this.area[rowIdx][colIdx] = newItem
+            this.canvas!.stage.addChild(newItem.element)
+            this.addMoving(rowIdx, colIdx, type)
+            if (type == DesertItemType.Sand) {
+              this.increaseSandColor()
+            }
           }
         }
       }
     },
-    addSandRandomlyToRow(y: number) {
-      const row = this.area[y]
+    addItemRandomlyToRow(rowIdx: number, type: DesertItemType) {
+      const row = this.area[rowIdx]
       let colIdx = null
       // Find random spot
       for (let i = 0; i < row.length; i++) {
@@ -142,11 +175,16 @@ export const useDesertStore = defineStore("desert", {
       }
 
       if (colIdx != null && colIdx >= 0) {
-        const newSand = getNewSand(colIdx, y, this.sandColorCoef)
-        row[colIdx] = newSand
-        this.canvas!.stage.addChild(newSand.element)
-        this.addMoving(colIdx, y)
-        this.increaseSandColor()
+        const newItem =
+          type == DesertItemType.Bomb
+            ? getNewBomb(rowIdx, colIdx)
+            : getNewSand(rowIdx, colIdx, this.sandColorCoef)
+        row[colIdx] = newItem
+        this.canvas!.stage.addChild(newItem.element)
+        this.addMoving(rowIdx, colIdx, type)
+        if (type == DesertItemType.Sand) {
+          this.increaseSandColor()
+        }
       }
     },
     /*
@@ -178,16 +216,16 @@ export const useDesertStore = defineStore("desert", {
             this.areaWidth,
           )
 
-          const line = bresenhamsLine(
-            startColIdx,
+          const line = getBresenhamsLine(
             startRowIdx,
-            endColIdx,
+            startColIdx,
             endRowIdx,
+            endColIdx,
           )
           line.forEach((point) => {
-            if (this.area[point.y][point.x] == null) {
-              const newObstacle = getNewObstacle(point.x, point.y)
-              this.area[point.y][point.x] = newObstacle
+            if (this.area[point.row][point.col] == null) {
+              const newObstacle = getNewObstacle(point.row, point.col)
+              this.area[point.row][point.col] = newObstacle
               this.canvas!.stage.addChild(newObstacle.element)
             }
           })
@@ -212,7 +250,7 @@ export const useDesertStore = defineStore("desert", {
               (settingsStore.obstaclesBottom + 1),
           )
           for (let rowIdx = obstacleTop; rowIdx < this.areaHeight; rowIdx++) {
-            const newObstacle = getNewObstacle(colIdx, rowIdx)
+            const newObstacle = getNewObstacle(rowIdx, colIdx)
             this.area[rowIdx][colIdx] = newObstacle
             this.canvas!.stage.addChild(newObstacle.element)
           }
@@ -225,10 +263,11 @@ export const useDesertStore = defineStore("desert", {
     drop(now: Moment) {
       const settingsStore = useSettingsStore()
       this.moving.forEach((movingItem) => {
-        const rowIdx = movingItem.y
-        const colIdx = movingItem.x
+        const rowIdx = movingItem.row
+        const colIdx = movingItem.col
         const row = this.area[rowIdx] as DesertRow
         const item = row[colIdx]!
+        const isBomb = item.type == DesertItemType.Bomb
         let stop = rowIdx >= this.areaHeight - 1
         if (!stop && now.diff(item.lastDrop) >= item.speed) {
           let moved = false
@@ -237,11 +276,11 @@ export const useDesertStore = defineStore("desert", {
           if (nextRow[colIdx] == null) {
             row[colIdx] = null
             nextRow[colIdx] = item
-            movingItem.y++
+            movingItem.row++
             moved = true
           }
           // Move down and L/R
-          else {
+          else if (!isBomb) {
             const randomSide = getRandomSign()
             for (const side of [randomSide, -randomSide]) {
               const sideIdx = colIdx + side
@@ -252,8 +291,8 @@ export const useDesertStore = defineStore("desert", {
               ) {
                 row[colIdx] = null
                 nextRow[sideIdx] = item
-                movingItem.x = sideIdx
-                movingItem.y++
+                movingItem.row++
+                movingItem.col = sideIdx
                 moved = true
                 break
               }
@@ -261,25 +300,31 @@ export const useDesertStore = defineStore("desert", {
           }
           // Update item after move
           if (moved) {
+            const acceleration =
+              item.type == DesertItemType.Bomb
+                ? settingsStore.bombAcceleration
+                : settingsStore.sandAcceleration
+
             item.lastDrop = now
-            item.speed = Math.max(
-              10,
-              item.speed - settingsStore.sandAcceleration,
-            )
+            item.speed = Math.max(10, item.speed - acceleration)
             item.element.position.set(
-              movingItem.x * settingsStore.desertItemSize,
-              movingItem.y * settingsStore.desertItemSize,
+              movingItem.col * settingsStore.desertItemSize,
+              movingItem.row * settingsStore.desertItemSize,
             )
             if (item.static != null) {
               item.static = null
             }
           }
-          // Mark as static
+          // Stop bomb
+          else if (isBomb) {
+            stop = true
+          }
+          // Mark sand as static
           else if (item.static == null) {
             item.static = now
           }
-          // No move and static passed
-          else if (now.diff(item.static) >= SAND_MAX_STATIC) {
+          // No sand move and static passed
+          else if (now.diff(item.static) >= ITEM_MAX_STATIC) {
             // Check temporary stucked item
             let stucked = false
             for (const direction of [-1, 1]) {
@@ -309,12 +354,29 @@ export const useDesertStore = defineStore("desert", {
           }
         }
         if (stop) {
+          this.removeMoving(rowIdx, colIdx, item.type)
+          // Destroy what bomb hit
+          if (isBomb) {
+            this.area[rowIdx][colIdx] = null
+            item.element.destroy()
+            if (isCoordinateIn(rowIdx + 1, this.areaHeight)) {
+              const hitItem = this.area[rowIdx + 1][colIdx]
+              if (hitItem != null && hitItem.type != DesertItemType.Obstacle) {
+                this.area[rowIdx + 1][colIdx] = null
+                hitItem.element.destroy()
+                if (hitItem.speed > 0) {
+                  this.removeMoving(rowIdx + 1, colIdx, hitItem.type)
+                }
+              }
+            }
+          }
           // Stop item
-          item.speed = 0
-          item.static = null
-          this.removeMoving(colIdx, rowIdx)
-          if (settingsStore.sandStaticRed) {
-            changeSandColor(item, "#FF0000")
+          else {
+            item.speed = 0
+            item.static = null
+            if (settingsStore.sandStaticRed) {
+              changeSandColor(item, "#FF0000")
+            }
           }
         }
       })
@@ -368,7 +430,11 @@ function getSandColor(sandColor: SandColor, coef: number) {
   }
 }
 
-function getNewSand(x: number, y: number, sandColorCoef: number): DesertItem {
+function getNewSand(
+  rowIdx: number,
+  colIdx: number,
+  sandColorCoef: number,
+): DesertItem {
   const settingsStore = useSettingsStore()
 
   const color = getSandColor(settingsStore.sandColor, sandColorCoef)
@@ -382,12 +448,12 @@ function getNewSand(x: number, y: number, sandColorCoef: number): DesertItem {
   )
   element.endFill()
   element.position.set(
-    x * settingsStore.desertItemSize,
-    y * settingsStore.desertItemSize,
+    colIdx * settingsStore.desertItemSize,
+    rowIdx * settingsStore.desertItemSize,
   )
 
   return {
-    type: "sand",
+    type: DesertItemType.Sand,
     lastDrop: moment(),
     static: null,
     speed: settingsStore.sandSpeed,
@@ -399,18 +465,40 @@ function getNewSand(x: number, y: number, sandColorCoef: number): DesertItem {
 function changeSandColor(item: DesertItem, color: string) {
   const settingsStore = useSettingsStore()
 
-  item.element.clear()
-  item.element.beginFill(color)
-  item.element.drawRect(
+  const graphics = item.element as PIXI.Graphics
+  graphics.clear()
+  graphics.beginFill(color)
+  graphics.drawRect(
     0,
     0,
     settingsStore.desertItemSize,
     settingsStore.desertItemSize,
   )
-  item.element.endFill()
+  graphics.endFill()
 }
 
-function getNewObstacle(x: number, y: number): DesertItem {
+function getNewBomb(rowIdx: number, colIdx: number): DesertItem {
+  const settingsStore = useSettingsStore()
+
+  const element = new PIXI.Sprite(TEXTURE_BOMB)
+  element.width = settingsStore.desertItemSize
+  element.height = settingsStore.desertItemSize
+  element.position.set(
+    colIdx * settingsStore.desertItemSize,
+    rowIdx * settingsStore.desertItemSize,
+  )
+
+  return {
+    type: DesertItemType.Bomb,
+    lastDrop: moment(),
+    static: null,
+    speed: settingsStore.bombSpeed,
+    color: null,
+    element,
+  }
+}
+
+function getNewObstacle(rowIdx: number, colIdx: number): DesertItem {
   const settingsStore = useSettingsStore()
 
   const color = "#FFC107"
@@ -424,12 +512,12 @@ function getNewObstacle(x: number, y: number): DesertItem {
   )
   element.endFill()
   element.position.set(
-    x * settingsStore.desertItemSize,
-    y * settingsStore.desertItemSize,
+    colIdx * settingsStore.desertItemSize,
+    rowIdx * settingsStore.desertItemSize,
   )
 
   return {
-    type: "obstacle",
+    type: DesertItemType.Obstacle,
     lastDrop: null,
     static: null,
     speed: 0,
@@ -438,37 +526,37 @@ function getNewObstacle(x: number, y: number): DesertItem {
   }
 }
 
-function bresenhamsLine(
-  startX: number,
-  startY: number,
-  endX: number,
-  endY: number,
+function getBresenhamsLine(
+  startRowIdx: number,
+  startColIdx: number,
+  endRowIdx: number,
+  endColIdx: number,
 ) {
-  const deltaX = Math.abs(endX - startX)
-  const deltaY = -Math.abs(endY - startY)
-  const stepX = startX < endX ? 1 : -1
-  const stepY = startY < endY ? 1 : -1
+  const deltaRow = -Math.abs(endRowIdx - startRowIdx)
+  const deltaCol = Math.abs(endColIdx - startColIdx)
+  const stepRow = startRowIdx < endRowIdx ? 1 : -1
+  const stepCol = startColIdx < endColIdx ? 1 : -1
 
   const points = []
-  let pointX = startX
-  let pointY = startY
-  let error = deltaX + deltaY
+  let pointRow = startRowIdx
+  let pointCol = startColIdx
+  let error = deltaRow + deltaCol
   let doubleError
   while (true) {
-    points.push({ x: pointX, y: pointY })
+    points.push({ row: pointRow, col: pointCol })
 
-    if (pointX == endX && pointY == endY) {
+    if (pointRow == endRowIdx && pointCol == endColIdx) {
       break
     }
 
     doubleError = 2 * error
-    if (doubleError >= deltaY) {
-      error += deltaY
-      pointX += stepX
+    if (doubleError >= deltaRow) {
+      error += deltaRow
+      pointCol += stepCol
     }
-    if (doubleError <= deltaX) {
-      error += deltaX
-      pointY += stepY
+    if (doubleError <= deltaCol) {
+      error += deltaCol
+      pointRow += stepRow
     }
   }
   return points
